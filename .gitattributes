@@ -1,0 +1,2 @@
+# Generated website contains release ZIPs; keep source archives finite and small.
+docs/ export-ignore

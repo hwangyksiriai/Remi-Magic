@@ -2,8 +2,6 @@
 
 Windows·macOS의 Chrome/Edge용 Manifest V3 확장 프로그램과 로컬 체험 화면입니다.
 
-**[설치 없이 공개 체험하기](https://hwangyksiriai.github.io/Remi-Magic/)** — 이 주소를 다른 사람에게 공유하면 바로 사용할 수 있습니다. 다른 웹사이트에 적용하려면 확장 프로그램을 설치해야 합니다.
-
 소스 코드와 직접 작성한 문서는 **MIT 라이선스**입니다. 캐릭터 이미지는 MIT 적용 대상에서 제외됩니다. 자세한 범위는 [LICENSE](LICENSE)와 [ASSET_NOTICE.md](ASSET_NOTICE.md)를 확인해 주세요.
 
 - [확장 프로그램 ZIP 다운로드](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-extension.zip)

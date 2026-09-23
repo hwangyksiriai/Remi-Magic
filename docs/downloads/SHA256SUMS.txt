@@ -1,0 +1,2 @@
+0d0666743ef70f108112bc5a99a4f36d18fa6d222b82d4b5035dc4e9c1d01ef9  remi-magic-extension.zip
+e633f61af0b827dc7a5dba3f22cf0a12a4e213f843db1eec6b5aee119ea47a1d  remi-magic-source.zip
