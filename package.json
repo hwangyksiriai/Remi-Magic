@@ -1,0 +1,17 @@
+{
+  "name": "remi-magic-cursor",
+  "version": "1.0.0",
+  "private": true,
+  "license": "MIT",
+  "engines": { "node": ">=18" },
+  "type": "module",
+  "description": "레미의 마법 커서 — 3D wand, rhythm tap and magical screenshot extension",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "npm run test && npm run build"
+  },
+  "dependencies": {"three": "^0.180.0"},
+  "devDependencies": {"esbuild": "^0.25.10"}
+}

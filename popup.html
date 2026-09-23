@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>레미의 마법 커서</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main>
+      <header class="hero">
+        <div class="eyebrow"><span class="tiny-star">✦</span> REMI MAGIC</div>
+        <h1>오늘도, 마법처럼.</h1>
+        <p>손끝에서 시작되는 작은 변신</p>
+        <div class="wand-art" aria-hidden="true"><div class="wand-orb"><i></i><i></i><i></i><i></i><i></i><i></i><b>♪</b></div><div class="wand-stem"></div><span>✧</span></div>
+      </header>
+
+      <section class="master-row">
+        <div><h2>마법 커서</h2><p id="enabled-label">요술봉과 함께하는 하루</p></div>
+        <label class="switch"><input type="checkbox" id="enabled" aria-label="마법 커서 켜기" /><span></span></label>
+      </section>
+
+      <section class="settings" aria-label="마법 설정">
+        <div class="character-row"><label for="character">함께 변신할 꼬마마법사</label><select id="character"><option value="remi">레미</option><option value="aiko">사랑이</option><option value="hazuki">메이</option></select></div>
+        <label class="setting-row"><span><strong>뾰로롱, 마법 소리</strong><small>스크롤과 변신에 반짝이는 음색</small></span><span class="switch"><input type="checkbox" id="sound" /><span></span></span></label>
+        <label class="setting-row"><span><strong>변신 순간 캡처</strong><small>꾹 눌러 변신하고 PNG로 저장</small></span><span class="switch"><input type="checkbox" id="captureOnTransform" /><span></span></span></label>
+        <label class="setting-row"><span><strong>별빛 잔상</strong><small>요술봉 뒤로 흩어지는 반짝임</small></span><span class="switch"><input type="checkbox" id="trail" /><span></span></span></label>
+        <div class="range-row"><label for="size">요술봉 크기</label><output id="size-value" for="size">160 px</output><input id="size" type="range" min="100" max="240" step="5" value="160" /></div>
+        <div class="range-row"><label for="volume">소리 크기</label><output id="volume-value" for="volume">44%</output><input id="volume" type="range" min="0" max="0.5" step="0.01" value="0.22" /></div>
+        <div class="range-row"><label for="holdDuration">꾹 누르는 시간</label><output id="holdDuration-value" for="holdDuration">0.9초</output><input id="holdDuration" type="range" min="500" max="1800" step="100" value="900" /></div>
+      </section>
+
+      <aside class="how-to"><span aria-hidden="true">✧</span><p><b>움직이면 요술봉 · 스크롤하면 리듬탭</b><br />빈 곳을 왼쪽 버튼으로 꾹 누르면 변신해요.</p></aside>
+      <button class="demo-button" id="open-demo" type="button">마법 연습실 열기 <span aria-hidden="true">↗</span></button>
+      <footer><span id="save-status" role="status">설정은 자동으로 저장돼요</span><button id="reset" type="button">초기화</button></footer>
+      <p class="compatibility">Windows · macOS의 Chrome / Edge용<br />브라우저 설정·새 탭·스토어 등 보호 페이지에서는 사용할 수 없어요. 캡처는 현재 보이는 웹페이지를 저장해요.</p>
+    </main>
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

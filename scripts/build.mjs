@@ -1,0 +1,10 @@
+import { build } from 'esbuild';
+import { mkdir, copyFile, readFile, writeFile, cp } from 'node:fs/promises';
+await mkdir('dist', { recursive: true });
+await build({ entryPoints: ['src/content.js', 'src/background.js', 'src/popup.js', 'src/demo.js'], outdir: 'dist', bundle: true, format: 'iife', target: ['chrome120'], minify: true, legalComments: 'eof', sourcemap: false });
+for (const [from, to] of [['extension/manifest.json','manifest.json'],['popup.html','popup.html'],['demo.html','demo.html'],['src/demo.css','demo.css'],['src/popup.css','popup.css']]) await copyFile(from, `dist/${to}`);
+const license = await readFile('node_modules/three/LICENSE', 'utf8');
+await cp('assets','dist/assets',{recursive:true});
+await writeFile('dist/THIRD_PARTY_LICENSES.txt', `Three.js\n${license}`);
+for (const file of ['README.md', 'LICENSE', 'ASSET_NOTICE.md']) await copyFile(file, `dist/${file}`);
+console.log('Built dist/ — load this directory as an unpacked Chrome/Edge extension.');
