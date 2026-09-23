@@ -8,6 +8,7 @@
   "description": "레미의 마법 커서 — 3D wand, rhythm tap and magical screenshot extension",
   "scripts": {
     "build": "node scripts/build.mjs",
+    "build:cursor": "node scripts/build-desktop-cursor.mjs",
     "dev": "node scripts/serve.mjs",
     "test": "node --test tests/*.test.mjs",
     "check": "npm run test && npm run build"

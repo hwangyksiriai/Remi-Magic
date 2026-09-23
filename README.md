@@ -1,16 +1,27 @@
 # Remi Magic · 레미의 마법 커서
 
-Windows·macOS의 Chrome/Edge용 Manifest V3 확장 프로그램과 로컬 체험 화면입니다.
+Windows용 실제 마우스 커서 파일, Windows·macOS의 Chrome/Edge용 Manifest V3 확장 프로그램과 체험 화면입니다.
 
 **[설치 없이 공개 체험하기](https://hwangyksiriai.github.io/Remi-Magic/)** — 이 주소를 다른 사람에게 공유하면 바로 사용할 수 있습니다. 다른 웹사이트에 적용하려면 확장 프로그램을 설치해야 합니다.
 
 소스 코드와 직접 작성한 문서는 **MIT 라이선스**입니다. 캐릭터 이미지는 MIT 적용 대상에서 제외됩니다. 자세한 범위는 [LICENSE](LICENSE)와 [ASSET_NOTICE.md](ASSET_NOTICE.md)를 확인해 주세요.
 
+- [Windows 실제 마우스 커서 ZIP 다운로드](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-windows-cursors.zip)
 - [확장 프로그램 ZIP 다운로드](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-extension.zip)
 - [소스 코드 ZIP 다운로드](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-source.zip)
 - [GitHub 저장소](https://github.com/hwangyksiriai/Remi-Magic)
 
-## 설치
+## Windows 바탕화면·일반 프로그램에 커서 적용
+
+1. 위 **Windows 실제 마우스 커서 ZIP**을 계속 보관할 폴더에 압축 해제합니다.
+2. **Win + R → `main.cpl` → 포인터 → 일반 선택 → 찾아보기**를 엽니다.
+3. **`Remi-Wand-Large.ani` → 열기 → 적용**을 선택합니다.
+
+128px 큰 요술봉과 64px 기본 요술봉, 같은 두 크기의 회전 리듬탭, 정지 요술봉이 들어 있습니다. 리듬탭은 **사용 중** 포인터에 지정할 수 있습니다. 링크 위에서도 요술봉을 유지하려면 **연결 선택**에도 지정하세요. 복구는 원래 Windows 구성표 선택 → 적용입니다. 자세한 안내는 `desktop-cursors/사용방법.txt`에 있습니다.
+
+ANI/CUR 파일은 Windows 포인터 모양과 반복 애니메이션을 바꿉니다. 이동 궤적·클릭 소리·스크롤 자동 전환·변신 캡처는 아래 확장 프로그램의 기능입니다. 일부 앱은 자체 커서를 사용합니다. macOS에는 ANI/CUR를 시스템 커서로 직접 설치할 수 없습니다.
+
+## Chrome·Edge 확장 프로그램 설치
 
 1. `release/remi-magic-extension.zip`을 압축 해제합니다. 또는 이 프로젝트의 `dist` 폴더를 사용합니다.
 2. Chrome에서 `chrome://extensions`, Edge에서 `edge://extensions`를 엽니다.
@@ -18,7 +29,7 @@ Windows·macOS의 Chrome/Edge용 Manifest V3 확장 프로그램과 로컬 체�
 4. `manifest.json`이 바로 들어 있는 폴더를 선택합니다.
 5. 확장 프로그램 아이콘을 고정하고, 이미 열어 둔 웹페이지를 새로고침합니다.
 
-macOS에서도 같은 절차와 같은 파일을 사용합니다. Node.js는 소스 수정·재빌드 때만 필요하며, 설치만 할 때는 필요하지 않습니다. 이 환경에는 macOS 기기가 없어 macOS 실기기 검증은 하지 못했습니다. Safari, Firefox, OS 바탕화면·다른 앱은 이번 버전의 지원 대상이 아닙니다.
+확장 프로그램은 macOS에서도 같은 절차와 같은 파일을 사용합니다. Node.js는 소스 수정·재빌드 때만 필요하며, 설치만 할 때는 필요하지 않습니다. 이 환경에는 macOS 기기가 없어 macOS 실기기 검증은 하지 못했습니다. 확장 프로그램은 Safari, Firefox, OS 바탕화면·다른 앱에는 적용되지 않습니다.
 
 ## 사용
 
@@ -76,7 +87,9 @@ npm run dev
 
 빌드 결과는 `dist`입니다. 네트워크에서 코드를 가져오지 않고 Three.js와 모든 원화를 로컬 번들에 포함합니다. Chrome 120 이상을 대상으로 빌드합니다.
 
-자동 테스트 28개: 캡처 권한/포커스/탭 전환 경합/서비스 워커 재시작 간격, 클릭과 길게 누르기/드래그/취소, 설정 복구, 음소거/음성 길이/스크롤 오디오, 구슬 챔버 경계, 7색 발광 순환, 3D 자원 해제. 로컬 체험 화면의 3D 출력, 캐릭터 전환, 기본 커서 복구와 실제 PNG 다운로드를 브라우저에서 확인했습니다. 설치된 Chrome/Edge의 실제 captureVisibleTab 저장 흐름과 macOS는 별도 실기기 검증이 필요합니다.
+자동 테스트 37개: CUR/ANI 바이너리 구조·투명도·핫스폿, 캡처 권한/포커스/탭 전환 경합/서비스 워커 재시작 간격, 클릭과 길게 누르기/드래그/취소, 설정 복구, 음소거/음성 길이/스크롤 오디오, 구슬 챔버 경계, 7색 발광 순환, 3D 자원 해제. 로컬 체험 화면의 3D 출력, 캐릭터 전환, 기본 커서 복구와 실제 PNG 다운로드를 브라우저에서 확인했습니다. 설치된 Chrome/Edge의 실제 captureVisibleTab 저장 흐름과 macOS는 별도 실기기 검증이 필요합니다.
+
+Windows 커서 재생성: `npm run build:cursor` → `npm run dev` → `http://127.0.0.1:4173/desktop-cursor.html` → **커서 파일 만들기** → 여섯 파일 다운로드. `scripts/validate-windows-cursors.ps1`로 Windows 네이티브 로딩을 확인할 수 있습니다. 검증 스크립트는 시스템 커서 설정을 바꾸지 않습니다.
 
 ## 참고 자료
 

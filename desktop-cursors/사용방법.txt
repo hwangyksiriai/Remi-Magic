@@ -1,0 +1,44 @@
+레미 마법 커서 — Windows용
+
+바탕화면과 일반 프로그램에서 실제 마우스 포인터로 사용하는 파일입니다.
+추천 파일: Remi-Wand-Large.ani (128px, 움직이는 컬러 구슬)
+
+적용 방법
+1. ZIP 전체를 계속 보관할 폴더에 압축 해제하세요. 적용 후 폴더를 옮기거나 삭제하지 마세요.
+2. 키보드에서 Windows 키 + R을 누르고 main.cpl 을 입력한 뒤 Enter를 누르세요.
+3. [포인터] 탭 → [일반 선택] → [찾아보기]를 누르세요.
+4. Remi-Wand-Large.ani 를 선택하고 [열기] → [적용]을 누르세요.
+5. [다른 이름으로 저장]으로 구성표를 저장하면 나중에 다시 고르기 편합니다.
+
+큰 버전이 너무 크면 Remi-Wand-Regular.ani (64px)를 선택하세요.
+클릭 위치는 요술봉 맨 위 끝입니다. 실제 표시 크기는 Windows 설정과 앱에 따라 달라질 수 있습니다.
+크기를 키우는 위치(Windows 11): 설정 → 접근성 → 마우스 포인터 및 터치 → 크기.
+크기 변경으로 커서가 기본 모양으로 돌아가면 위 방법으로 요술봉을 다시 선택하세요.
+Microsoft 설정 안내: https://support.microsoft.com/en-gb/windows/hardware/input-devices/change-mouse-settings
+링크 위에서도 요술봉을 유지하려면 [연결 선택] 항목에도 같은 파일을 지정하세요.
+텍스트 선택·크기 조절 등 다른 포인터는 각 항목에 별도로 지정할 수 있습니다.
+원래대로 복구: [포인터] → 기존 Windows 구성표 선택 → [적용].
+
+포함 파일
+Remi-Wand-Large.ani           움직이는 요술봉, 큰 크기 (128px)
+Remi-Wand-Regular.ani         움직이는 요술봉, 기본 크기 (64px)
+Remi-Wand-Large.cur           정지 요술봉, 큰 크기 (128px)
+Remi-Wand-Regular.cur         정지 요술봉, 기본 크기 (64px)
+Remi-Rhythm-Tap-Large.ani     회전하는 리듬탭, 큰 크기 (128px)
+Remi-Rhythm-Tap-Regular.ani   회전하는 리듬탭, 기본 크기 (64px)
+
+리듬탭은 [사용 중] 또는 [백그라운드 작업] 포인터에 지정하는 것을 추천합니다.
+ANI는 24프레임, 초당 15프레임의 반복 애니메이션입니다.
+
+기능 범위
+이 파일은 Windows 마우스 모양과 반복 애니메이션을 바꿉니다.
+마우스 이동 방향에 반응하는 구슬 물리, 궤적, 클릭 소리, 스크롤 자동 전환,
+캐릭터 변신·캡처는 커서 파일만으로 실행되지 않습니다.
+웹페이지에서 그 기능들을 쓰려면 별도 Chrome/Edge 확장 프로그램을 설치하세요.
+자체 커서를 쓰는 일부 앱·게임은 Windows 포인터 설정을 따르지 않을 수 있습니다.
+macOS에는 이 ANI/CUR 파일을 시스템 커서로 바로 설치할 수 없습니다.
+
+공개 체험 및 다운로드: https://hwangyksiriai.github.io/Remi-Magic/
+소스 코드: https://github.com/hwangyksiriai/Remi-Magic
+
+코드 라이선스와 캐릭터·디자인 권리 범위는 함께 포함된 LICENSE와 ASSET_NOTICE.md를 참고하세요.

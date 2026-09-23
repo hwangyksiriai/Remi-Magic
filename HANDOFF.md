@@ -32,6 +32,7 @@ Git 없이 작업하려면 [소스 ZIP](https://github.com/hwangyksiriai/Remi-Ma
 - 길게 누르기 → 리듬탭 → 레미·사랑이·메이 원화 연출
 - 확장 프로그램의 현재 탭 PNG 캡처, 체험 페이지의 캐릭터 카드 저장
 - 캐릭터별 주문과 공통 효과음 파일을 브라우저에 넣는 기능
+- Windows 실제 마우스 포인터용 ANI/CUR 6종 (크기 128/64px), `desktop-cursors/`의 설명서 참고
 
 ## 작업 파일
 
@@ -46,7 +47,8 @@ Git 없이 작업하려면 [소스 ZIP](https://github.com/hwangyksiriai/Remi-Ma
 | `src/popup.js`, `popup.html` | 확장 설정 |
 | `src/demo.js`, `demo.html` | 로컬 체험 및 소리 보관함 |
 | `extension/manifest.json` | 확장 권한과 파일 구성 |
-| `tests/` | Node.js 자동 테스트 28개 |
+| `src/desktop-cursor.js`, `scripts/cursor-format.mjs` | 3D 커서 렌더링, Windows CUR/ANI 인코딩 |
+| `tests/` | Node.js 자동 테스트 37개 |
 
 ## 다음에 할 작업과 한계
 
