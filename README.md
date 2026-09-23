@@ -4,9 +4,9 @@ Windows·macOS의 Chrome/Edge용 Manifest V3 확장 프로그램과 로컬 체�
 
 소스 코드와 직접 작성한 문서는 **MIT 라이선스**입니다. 캐릭터 이미지는 MIT 적용 대상에서 제외됩니다. 자세한 범위는 [LICENSE](LICENSE)와 [ASSET_NOTICE.md](ASSET_NOTICE.md)를 확인해 주세요.
 
-- [확장 프로그램 ZIP 다운로드](https://github.com/hwangyksiriai/remi-magic-cursor/releases/latest/download/remi-magic-extension.zip)
-- [소스 코드 ZIP 다운로드](https://github.com/hwangyksiriai/remi-magic-cursor/releases/latest/download/remi-magic-source.zip)
-- [GitHub 저장소](https://github.com/hwangyksiriai/remi-magic-cursor)
+- [확장 프로그램 ZIP 다운로드](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-extension.zip)
+- [소스 코드 ZIP 다운로드](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-source.zip)
+- [GitHub 저장소](https://github.com/hwangyksiriai/Remi-Magic)
 
 ## 설치
 
@@ -59,6 +59,8 @@ macOS에서도 같은 절차와 같은 파일을 사용합니다. Node.js는 소
 - 참고 영상과 의상·소품에 서로 다른 시즌/더빙이 섞여 있습니다. 현재 결과는 사진과 제공 이미지 기반의 인터랙션 프로토타입으로, 영상과 프레임·대사·음성까지 동일한 복제본은 아닙니다.
 - 브라우저 내부 설정, 확장 스토어, 일부 PDF/보호된 페이지에는 브라우저가 확장 삽입을 금지합니다. 사이트 접근 권한을 허용한 일반 웹페이지에서 사용합니다. 파일 URL은 확장 설정의 파일 접근 허용이 추가로 필요합니다.
 - WebGL을 사용합니다. 비활성 탭에서는 애니메이션을 멈추고, WebGL 오류/직접 비디오 전체화면에서는 기본 커서로 복구합니다. OS의 동작 줄이기 설정이 켜져 있으면 입자를 줄입니다.
+
+다른 컴퓨터에서 이어서 작업하는 절차는 [HANDOFF.md](HANDOFF.md)에 정리되어 있습니다.
 
 ## 개발과 확인
 

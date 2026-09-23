@@ -6,5 +6,5 @@ for (const [from, to] of [['extension/manifest.json','manifest.json'],['popup.ht
 const license = await readFile('node_modules/three/LICENSE', 'utf8');
 await cp('assets','dist/assets',{recursive:true});
 await writeFile('dist/THIRD_PARTY_LICENSES.txt', `Three.js\n${license}`);
-for (const file of ['README.md', 'LICENSE', 'ASSET_NOTICE.md']) await copyFile(file, `dist/${file}`);
+for (const file of ['README.md', 'HANDOFF.md', 'LICENSE', 'ASSET_NOTICE.md']) await copyFile(file, `dist/${file}`);
 console.log('Built dist/ — load this directory as an unpacked Chrome/Edge extension.');
