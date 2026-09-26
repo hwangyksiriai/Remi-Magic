@@ -3,3 +3,6 @@ dist/
 release/
 artifacts/
 *.log
+.npm-cache/
+desktop/dist/
+desktop/artifacts/

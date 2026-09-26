@@ -119,7 +119,7 @@ test('settings normalization preserves valid choices and clamps numbers', () => 
     size: 300, volume: -2, holdDuration: 2000, character: 'hazuki',
   }), {
     enabled: false, sound: false, captureOnTransform: false, trail: false,
-    size: 240, volume: 0, holdDuration: 1800, character: 'hazuki',
+    size: 240, volume: 0, holdDuration: 1800, character: 'hazuki', language:'ko', voiceFallback:false,
   });
   assert.equal(normalizeSettings({ character: 'aiko' }).character, 'aiko');
   assert.equal(normalizeSettings({ size: 10 }).size, 100);
@@ -137,3 +137,5 @@ test('missing or malformed stored settings recover the defaults', () => {
   restored.size = 230;
   assert.equal(DEFAULTS.size, 160);
 });
+
+test('all five characters and both voice languages survive normalization',()=>{for(const character of ['remi','aiko','hazuki','onpu','momoko'])for(const language of ['ko','ja']){const s=normalizeSettings({character,language,voiceFallback:false});assert.equal(s.character,character);assert.equal(s.language,language);assert.equal(s.voiceFallback,false);}assert.equal(normalizeSettings({language:'en'}).language,'ko');});

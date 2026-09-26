@@ -1,108 +1,144 @@
 import * as T from 'three';
+export { createWand, updateWand } from './wand-model.js';
 
-const ballColors = [0xff385f, 0xff6928, 0xffbf08, 0xf4db05, 0x1fcd4c, 0x079dff, 0x9122dc];
-const material = (color, options = {}) => new T.MeshPhysicalMaterial({ color, roughness: .2, metalness: .12, clearcoat: 1, clearcoatRoughness: .12, ...options });
-function mesh(group, geometry, mat, x = 0, y = 0, z = 0) {
-  const m = new T.Mesh(geometry, mat); m.position.set(x,y,z); group.add(m); return m;
+// Clockwise from the upper-right petal in the supplied product photograph.
+const ballColors = [0xf15aa4, 0xeb2350, 0xff9b23, 0xf4d329, 0x12b57d, 0x159bca, 0xa86dcb];
+const physical = (color, options = {}) => new T.MeshPhysicalMaterial({ color, roughness: .25, metalness: 0, clearcoat: .65, clearcoatRoughness: .12, ior: 1.46, envMapIntensity: 1.05, ...options });
+function mesh(group, geometry, mat, x = 0, y = 0, z = 0, name = '') {
+  const object = new T.Mesh(geometry, mat); object.position.set(x, y, z); object.name = name; group.add(object); return object;
 }
-function sphere(group, r, mat, x=0,y=0,z=0) { return mesh(group,new T.SphereGeometry(r,24,16),mat,x,y,z); }
-function ring(group,r,t,mat,x=0,y=0,z=0) { return mesh(group,new T.TorusGeometry(r,t,12,64),mat,x,y,z); }
-function cylinder(group,top,bottom,height,mat,x=0,y=0,z=0) { return mesh(group,new T.CylinderGeometry(top,bottom,height,40),mat,x,y,z); }
-function line(group,points,r,mat) { return mesh(group,new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>new T.Vector3(...p))),32,r,8,false),mat); }
-function note(group,x,y,z,size,mat) {
-  const n=new T.Group(); n.position.set(x,y,z); n.scale.setScalar(size); group.add(n);
-  sphere(n,.16,mat,-.11,-.18,0).scale.set(1.25,.8,.3);
-  line(n,[[.035,-.18,0],[.035,.3,0],[.2,.22,0]],.035,mat);
-  return n;
+function sphere(group, radius, mat, x, y, z, name = '') { return mesh(group, new T.SphereGeometry(radius, 32, 20), mat, x, y, z, name); }
+function ring(group, radius, tube, mat, x = 0, y = 0, z = 0, name = '') { return mesh(group, new T.TorusGeometry(radius, tube, 12, 96), mat, x, y, z, name); }
+function disc(group, radius, depth, mat, z, name = '') {
+  const object = mesh(group, new T.CylinderGeometry(radius, radius, depth, 80), mat, 0, 0, z, name);
+  object.rotation.x = Math.PI / 2; return object;
 }
-
-export function createWand() {
-  const g=new T.Group(); g.name='Peperuto Poron';
-  const pink=material(0xff80bc), dark=material(0xec358d), gold=material(0xe8b750,{metalness:.82,roughness:.22}), cream=material(0xffefd8);
-  // A long clear bead chamber and the musical-note collar of Peperuto Poron.
-  const profile=[[-2.28,.06],[-2.2,.16],[-1.94,.18],[-1.7,.17],[-.83,.21],[-.67,.28],[-.52,.27]];
-  mesh(g,new T.LatheGeometry(profile.map(([y,r])=>new T.Vector2(r,y)),48),pink);
-  sphere(g,.18,gold,0,-2.12,0);
-  for(const y of [-1.9,-.8,-.6]) ring(g,.20,.038,y===-.6?gold:dark,0,y).rotation.x=Math.PI/2;
-  sphere(g,.38,pink,0,-.33,0).scale.set(1,.87,.72);
-  const face=cylinder(g,.265,.265,.07,cream,0,-.3,.28);face.rotation.x=Math.PI/2;
-  ring(g,.275,.047,gold,0,-.3,.34);
-  note(g,.035,-.28,.39,1,gold);
-  for(const x of [-.43,.43]) { sphere(g,.13,gold,x,-.3,0); sphere(g,.09,pink,x,-.3,.08); }
-  const glass=material(0xffedf8,{transparent:true,opacity:.14,roughness:.07,metalness:.08,depthWrite:false,side:T.DoubleSide});
-  cylinder(g,.235,.24,1.65,glass,0,.84);
-  sphere(g,.25,glass,0,1.66,0).scale.y=.65;
-  for(const y of [.02,1.66]) ring(g,.24,.055,gold,0,y).rotation.x=Math.PI/2;
-  sphere(g,.28,pink,0,1.79,0).scale.set(1,.65,1);
-  ring(g,.22,.026,dark,0,1.8).rotation.x=Math.PI/2;
-  sphere(g,.12,gold,0,1.99,0);
-  const shine=material(0xffffff,{transparent:true,opacity:.65,depthWrite:false});
-  line(g,[[-.18,.14,.15],[-.19,.75,.14],[-.18,1.55,.14]],.017,shine);
-  line(g,[[.22,.12,.04],[.235,.85,.035],[.22,1.6,.04]],.012,shine);
-  const beads=[];
-  for(let i=0;i<14;i++) {
-    const r=.102; const b=sphere(g,r,material(ballColors[i%7],{roughness:.11}),i%2?.105:-.105,.18+Math.floor(i/2)*.205,(i%3-1)*.05);
-    beads.push({mesh:b,vx:0,vy:0,vz:0,r});
+function outlineShape(scale = 1) {
+  const shape = new T.Shape(), points = [];
+  for (let index = 0; index <= 256; index++) {
+    const angle = index / 256 * Math.PI * 2;
+    // Radial union of eight overlapping circular lobes, not a pointed cosine star.
+    const nearest = Math.round(angle / (Math.PI / 4)) * Math.PI / 4;
+    const delta = angle - nearest;
+    const radius = (.905 * Math.cos(delta) + Math.sqrt(.385 ** 2 - (.905 * Math.sin(delta)) ** 2)) * scale;
+    const x = Math.sin(angle) * radius, y = Math.cos(angle) * radius;
+    if (index === 0) shape.moveTo(x, y); else shape.lineTo(x, y);
+    points.push(new T.Vector3(x, y, 0));
   }
-  g.userData.beads=beads;g.userData.height=4.35;g.userData.tipY=2.12;
-  return g;
+  return { shape, points };
+}
+function housing(group, shape, mat, depth, z, bevel, name) {
+  return mesh(group, new T.ExtrudeGeometry(shape, { depth, steps: 1, bevelEnabled: bevel > 0, bevelSize: bevel, bevelThickness: bevel, bevelSegments: 4, curveSegments: 48 }), mat, 0, 0, z, name);
+}
+function contour(group, points, mat, radius, z, name) {
+  const curve = new T.CatmullRomCurve3(points.slice(0, -1).map(point => new T.Vector3(point.x, point.y, z)), true, 'centripetal');
+  return mesh(group, new T.TubeGeometry(curve, 256, radius, 10, true), mat, 0, 0, 0, name);
+}
+function raisedShape(group, shape, mat, x, y, z, scale = 1, name = '') {
+  const object = mesh(group, new T.ExtrudeGeometry(shape, { depth: .014, bevelEnabled: true, bevelSize: .0035, bevelThickness: .0035, bevelSegments: 2, curveSegments: 20 }), mat, x, y, z, name);
+  object.scale.setScalar(scale); return object;
+}
+function musicNote(group, mat, x, y, z, scale = 1, mirror = false) {
+  const note = new T.Group(); note.name = 'raised gold music note'; note.position.set(x, y, z); note.scale.set(scale * (mirror ? -1 : 1), scale, scale); group.add(note);
+  const head = new T.Shape(); head.absellipse(-.075, -.125, .095, .065, -.3, Math.PI * 2 - .3, false, -.25);
+  raisedShape(note, head, mat, 0, 0, 0);
+  const stem = new T.Shape(); stem.moveTo(-.017, -.132); stem.lineTo(.018, -.132); stem.lineTo(.018, .145); stem.bezierCurveTo(.08, .103, .09, .095, .132, .12); stem.lineTo(.132, .171); stem.bezierCurveTo(.072, .132, .06, .206, -.017, .226); stem.closePath();
+  raisedShape(note, stem, mat, 0, 0, 0); return note;
 }
 
-export function updateWand(g,{time,dx=0,dy=0,dt=.016}) {
-  const balls=g.userData.beads;dt=Math.min(dt,.035);
-  for(let i=0;i<balls.length;i++) {
-    const b=balls[i],p=b.mesh.position;
-    b.vx+=(-dx*.7+Math.sin(time*1.5+i)*.16)*dt;
-    b.vy+=(dy*.7-1.6+Math.cos(time*2+i)*.2)*dt;
-    b.vz+=Math.sin(time*1.3+i)*.07*dt;
-    b.vx*=.975;b.vy*=.985;b.vz*=.96;
-    p.x+=b.vx*dt;p.y+=b.vy*dt;p.z+=b.vz*dt;
-    const radius=Math.hypot(p.x,p.z),limit=.235-b.r;
-    if(radius>limit) { p.x*=limit/radius;p.z*=limit/radius;b.vx*=-.72;b.vz*=-.72; }
-    if(p.y<.08+b.r) {p.y=.08+b.r;b.vy=Math.abs(b.vy)*.6;}
-    if(p.y>1.65-b.r) {p.y=1.65-b.r;b.vy=-Math.abs(b.vy)*.6;}
-  }
-  // Resolve bead contacts twice for a clearly visible, stable stack.
-  for(let iteration=0;iteration<2;iteration++) for(let i=0;i<balls.length;i++) for(let j=i+1;j<balls.length;j++) {
-    const a=balls[i],b=balls[j],d=b.mesh.position.clone().sub(a.mesh.position),length=d.length(),limit=a.r+b.r;
-    if(length>0&&length<limit) { d.multiplyScalar((limit-length)/length*.5);a.mesh.position.sub(d);b.mesh.position.add(d);const vy=a.vy;a.vy=b.vy*.7;b.vy=vy*.7; }
-  }
-  // Collision correction can push against the chamber; always finish inside it.
-  for(const b of balls) {const p=b.mesh.position; p.y=T.MathUtils.clamp(p.y,.08+b.r,1.65-b.r);const r=Math.hypot(p.x,p.z);if(r>.235-b.r){p.x*=(.235-b.r)/r;p.z*=(.235-b.r)/r;}}
-}
-
+/** A layered product-like compact modeled from references/rhythm-tap-photo.png. */
 export function createRhythmTap() {
-  const g=new T.Group();g.name='Rhythm Tap';
-  const pink=material(0xffa9d0,{roughness:.14}), edge=material(0xe8d5e2,{metalness:.7,roughness:.14}),gold=material(0xd8b142,{metalness:.8,roughness:.22});
-  const glass=material(0xffddeb,{transparent:true,opacity:.23,depthWrite:false,roughness:.06});
-  const shape=new T.Shape();const outline=[];
-  for(let i=0;i<=256;i++) {const a=i/256*Math.PI*2;const r=1.17+.135*Math.cos(a*8);const x=Math.sin(a)*r,y=Math.cos(a)*r;if(!i)shape.moveTo(x,y);else shape.lineTo(x,y);outline.push([x,y,.21]);}
-  const body=mesh(g,new T.ExtrudeGeometry(shape,{depth:.18,bevelEnabled:true,bevelSize:.055,bevelThickness:.065,bevelSegments:3,steps:1,curveSegments:48}),pink);body.position.z=-.13;
-  line(g,outline,.033,edge);
-  const gems=[];
-  for(let i=0;i<8;i++) {
-    const a=i*Math.PI/4,x=Math.sin(a)*.94,y=Math.cos(a)*.94;
-    const shell=sphere(g,.326,glass,x,y,.15);shell.scale.z=.6;
-    if(i===0) {note(g,x,y,.34,.79,gold);continue;}
-    const b=sphere(g,.177,material(ballColors[i-1],{roughness:.08,metalness:.15,emissive:ballColors[i-1],emissiveIntensity:.03}),x,y,.23);
-    gems.push(b);
-    const stem=mesh(g,new T.ConeGeometry(.083,.23,3),gold,x+Math.cos(a)*.05,y-Math.sin(a)*.05,.22);stem.rotation.z=-a+.5;stem.scale.z=.45;
+  const group = new T.Group(); group.name = 'Rhythm Tap — clear flower compact';
+  const pink = physical(0xef79ac, { roughness: .27, clearcoat: .6, clearcoatRoughness: .13 });
+  const innerPink = physical(0xf8bdd4, { roughness: .36, clearcoat: .28, clearcoatRoughness: .21 });
+  const seam = physical(0x31222c, { metalness: 0, roughness: .48, clearcoat: .08 });
+  const gold = physical(0xe1b83a, { metalness: 1, roughness: .18, clearcoat: 0, envMapIntensity: 1.25 });
+  const chrome = physical(0xeaf0e8, { metalness: 1, roughness: .13, clearcoat: 0, envMapIntensity: 1.2 });
+  const clear = physical(0xffffff, { transmission: 1, thickness: .05, ior: 1.47, roughness: .015, clearcoat: 0, metalness: 0, transparent: true, opacity: 1, depthWrite: false, envMapIntensity: 1.15 });
+  const cover = physical(0xffffff, { transmission: 1, thickness: .025, ior: 1.47, roughness: .02, clearcoat: 0, metalness: 0, transparent: true, opacity: 1, depthWrite: false, envMapIntensity: 1.15 });
+  const { shape, points } = outlineShape();
+
+  housing(group, shape, pink, .30, -.31, .055, 'thick pink back housing');
+  housing(group, outlineShape(1.013).shape, seam, .043, .008, .018, 'dark case seam');
+  contour(group, points, gold, .026, .067, 'gold perimeter trim');
+  contour(group, points, chrome, .015, .102, 'silver perimeter highlight');
+  housing(group, outlineShape(.981).shape, innerPink, .055, .103, .016, 'pale pink inner tray');
+  const front = housing(group, shape, cover, .061, .173, .021, 'continuous clear flower lid'); front.renderOrder = 10;
+  contour(group, points, clear, .035, .222, 'thick transparent cover edge').renderOrder = 13;
+
+  const gems = [], pockets = [];
+  for (let petal = 0; petal < 8; petal++) {
+    const angle = petal * Math.PI / 4;
+    const x = Math.sin(angle) * .905, y = Math.cos(angle) * .905;
+    // A hemispherical clear pocket sits over each jewel and joins the front lid.
+    const pocket = mesh(group, new T.SphereGeometry(.332, 36, 20, 0, Math.PI * 2, 0, Math.PI / 2), clear, x, y, .216, 'clear petal dome');
+    pocket.rotation.x = Math.PI / 2; pocket.scale.y = .86; pocket.renderOrder = 15;
+    pockets.push(pocket);
+    ring(group, .306, .012, clear, x, y, .225, 'clear petal lip').renderOrder = 14;
+    if (petal === 0) continue;
+    const color = ballColors[petal - 1];
+    // Opaque clear-coated gems stay in Three.js' refraction buffer; nested
+    // transmissive jewels disappear when viewed through a transmissive lid.
+    const jewel = sphere(group, .207, physical(color, { transmission: 0, roughness: .12, metalness: 0, clearcoat: 1, clearcoatRoughness: .035, ior: 1.49, envMapIntensity: .9, emissive: color, emissiveIntensity: .003 }), x, y, .291, 'colored spherical jewel');
+    gems.push(jewel);
+    // Matching glossy stems remain opaque so the lid can refract their colors.
+    const stemShape = new T.Shape(); stemShape.moveTo(-.041, -.18); stemShape.quadraticCurveTo(-.085, -.035, -.055, .045); stemShape.lineTo(.073, .015); stemShape.quadraticCurveTo(.044, -.09, .044, -.18); stemShape.closePath();
+    const stem = raisedShape(group, stemShape, physical(color, { transmission: 0, roughness: .19, clearcoat: .8, clearcoatRoughness: .07, opacity: 1 }), Math.sin(angle) * .69, Math.cos(angle) * .69, .256, .7, 'colored inner note stem');
+    stem.rotation.z = -angle; stem.renderOrder = 8;
+    const lozenge = new T.Shape(); lozenge.moveTo(0, .078); lozenge.lineTo(.038, 0); lozenge.lineTo(0, -.078); lozenge.lineTo(-.038, 0); lozenge.closePath();
+    const decorationAngle = angle - Math.PI / 8;
+    const decoration = raisedShape(group, lozenge, gold, Math.sin(decorationAngle) * .683, Math.cos(decorationAngle) * .683, .273, 1, 'small gold lozenge');
+    decoration.rotation.z = -decorationAngle - .35;
   }
-  const face=cylinder(g,.54,.54,.13,material(0xfffdf2),0,0,.28);face.rotation.x=Math.PI/2;
-  ring(g,.6,.065,edge,0,0,.29);ring(g,.515,.019,gold,0,0,.36);ring(g,.66,.025,material(0xff7eb8),0,0,.20);
-  note(g,-.1,-.07,.38,.88,gold);note(g,.17,-.07,.38,.88,gold).rotation.y=Math.PI;
-  for(const x of [-.19,0,.19]) {const crown=mesh(g,new T.ConeGeometry(.09,.15,3),gold,x,.36,.38);crown.scale.z=.25;}
-  line(g,[[-.26,.29,.38],[0,.22,.38],[.26,.29,.38]],.027,gold);
-  g.userData.gems=gems;g.userData.height=2.7;return g;
+
+  // Central medallion: pink socket, polished bezel, silver pearl face, raised gold emblem.
+  disc(group, .568, .077, pink, .263, 'pink medallion socket');
+  ring(group, .562, .033, chrome, 0, 0, .332, 'polished medallion bezel');
+  ring(group, .601, .013, clear, 0, 0, .324, 'clear medallion lip').renderOrder = 18;
+  disc(group, .528, .038, physical(0xdde9e5, { metalness: .12, roughness: .29, clearcoat: .65, clearcoatRoughness: .11, iridescence: .08, iridescenceIOR: 1.35, iridescenceThicknessRange: [180, 280] }), .343, 'silvery pearl medallion');
+  ring(group, .502, .009, gold, 0, 0, .370, 'fine gold face line');
+  const emblemCurve = new T.EllipseCurve(0, -.012, .334, .326, .42, Math.PI * 2 + .42, false);
+  const emblemPoints = emblemCurve.getPoints(90).map(point => new T.Vector3(point.x, point.y, .379));
+  mesh(group, new T.TubeGeometry(new T.CatmullRomCurve3(emblemPoints), 90, .012, 8, false), gold, 0, 0, 0, 'gold emblem circle');
+  musicNote(group, gold, -.102, -.044, .380, .80);
+  musicNote(group, gold, .102, -.044, .380, .80, true);
+  const crown = new T.Shape(); crown.moveTo(-.145, .16); crown.lineTo(-.16, .245); crown.lineTo(-.055, .205); crown.lineTo(0, .32); crown.lineTo(.055, .205); crown.lineTo(.16, .245); crown.lineTo(.145, .16); crown.closePath();
+  raisedShape(group, crown, gold, 0, 0, .383, 1, 'gold crown emblem');
+  for (const [x, y] of [[-.24, .224], [-.17, .299], [0, .361], [.17, .299], [.24, .224]]) sphere(group, .027, gold, x, y, .387).scale.z = .22;
+  const lens = sphere(group, .52, cover, 0, 0, .366, 'clear central lens'); lens.scale.z = .105; lens.renderOrder = 20;
+
+  // Raised upper notes and the visibly clear top tab, plus a small lower latch.
+  musicNote(group, gold, 0, .803, .264, .62);
+  musicNote(group, gold, -.17, .752, .264, .29);
+  musicNote(group, gold, .17, .752, .264, .29, true);
+  mesh(group, new T.BoxGeometry(.215, .213, .135), clear, 0, 1.233, .202, 'transparent top tab').renderOrder = 19;
+  mesh(group, new T.BoxGeometry(.157, .026, .148), chrome, 0, 1.318, .199, 'top tab silver highlight');
+  const hinge = mesh(group, new T.CylinderGeometry(.058, .058, .225, 24), chrome, 0, -1.225, -.036, 'bottom hinge'); hinge.rotation.z = Math.PI / 2;
+  mesh(group, new T.BoxGeometry(.20, .115, .113), clear, 0, -1.306, .082, 'transparent lower latch').renderOrder = 19;
+  mesh(group, new T.BoxGeometry(.162, .023, .056), gold, 0, -1.352, .112, 'lower latch gold lip');
+
+  group.userData.gems = gems;
+  group.userData.pockets = pockets;
+  const bounds = new T.Box3().setFromObject(group);
+  group.userData.height = bounds.max.y - bounds.min.y;
+  group.userData.depth = bounds.max.z - bounds.min.z;
+  return group;
 }
 
-export function updateRhythmTap(g,time,charged=0) {
-  const lit=Math.floor(time*5)%7;
-  g.userData.gems.forEach((gem,i)=>{gem.material.emissiveIntensity=i===lit?.45+charged*.9:.02+charged*.1;const s=1+(i===lit?.08:0);gem.scale.setScalar(s);});
+export function updateRhythmTap(group, time, charged = 0) {
+  const seconds = Number.isFinite(time) ? time : 0;
+  const energy = T.MathUtils.clamp(Number.isFinite(charged) ? charged : 0, 0, 1);
+  const lit = ((Math.floor(seconds * 5) % 7) + 7) % 7;
+  group.userData.gems.forEach((gem, index) => {
+    // Idle jewels read as reflective solid objects; charging adds a restrained
+    // light rather than flattening their shading or inflating their geometry.
+    gem.material.emissiveIntensity = index === lit ? .035 + energy * .265 : .003 + energy * .025;
+    gem.scale.setScalar(1);
+  });
 }
 
 export function disposeModel(group) {
-  const geometries=new Set(),materials=new Set();
-  group.traverse(o=>{if(o.geometry)geometries.add(o.geometry);if(o.material)(Array.isArray(o.material)?o.material:[o.material]).forEach(m=>materials.add(m));});
-  geometries.forEach(g=>g.dispose());materials.forEach(m=>m.dispose());
+  const geometries = new Set(), materials = new Set();
+  group.traverse(object => { if (object.geometry) geometries.add(object.geometry); if (object.material) (Array.isArray(object.material) ? object.material : [object.material]).forEach(mat => materials.add(mat)); });
+  geometries.forEach(geometry => geometry.dispose()); materials.forEach(mat => mat.dispose());
 }

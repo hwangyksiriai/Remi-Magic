@@ -1,0 +1,158 @@
+{
+  "version": 1,
+  "tool": "built-in image_gen__imagegen",
+  "purpose": "Remove exterior white backdrops and gray ground shadows while preserving original character RGB.",
+  "originalsUnmodified": true,
+  "assets": [
+    {
+      "id": "hazuki",
+      "source": "hazuki-transformed.png",
+      "output": "hazuki-transformed-cutout.png",
+      "sourceSha256": "876af2407f4fa763b7992629b99c0d162fd4f024418d2abee8ebb7a161ea341b",
+      "outputSha256": "5ad135e72e77f6cfbd86ec6a7cd4467ec4baddf7c52b6e79caf6aaab0c3bb1af",
+      "prompt": "Use case: background-extraction. This is an exact background removal edit, NOT new illustration generation. The attached image is the sole edit target. Subject: Hazuki, the orange-clothed witch with round glasses and a raised pink wand. Remove ONLY the exterior white/off-white background and the gray oval floor shadow underneath the character. Return a PNG with real transparent alpha (RGBA), no checkerboard painted into the image, no solid background. Preserve every existing character pixel and detail as closely as possible: exact face, eyes, glasses when present, outlines, original colors, white gloves and white clothing areas, hair, hat, wand, body, pose and proportions. White regions inside the character must remain opaque. Do NOT redraw, redesign, smooth, recolor, enhance, re-pose, add or remove character details. Do not remove the wand, its fine handle, fingers, shoes or thin outlines. Composition/framing: The original tall 282 by 587 portrait framing and all character/wand extremities; preserve the original aspect ratio and positioning with no crop, stretch or added decorative margin. No new shadows, no glow, no border, no text. The only requested change is clean extraction of the existing exact character art onto true transparency.",
+      "method": "Built-in ImageGen alpha guide resized to original dimensions and thresholded at128; original colored/dark linework opacity restored; neutral exterior halos removed only within the outer2-pixel guide band. Entire source RGB retained unchanged.",
+      "alphaRefinement": {
+        "generatedGuide": "Sharp resize(fit:fill) to source dimensions, extract alpha and threshold at128",
+        "sourceEdgeRule": "Restore source confident colored/dark pixels to alpha255 where guide alignment clipped them. White gloves, white cuffs and other white clothing are retained from the ImageGen alpha guide. Original RGB never changes.",
+        "rejectedMethod": "A temporary edge-connected-white flood-fill candidate was rejected during checkerboard QA because thin outline gaps removed white cuffs. That candidate is overwritten and not shipped.",
+        "outputDimensions": "Original source width and height preserved exactly",
+        "exteriorHaloRule": "Optional edge refinement: flood only source neutral pixels(min>=165,max-min<27) connected to image border, blocked by confident source foreground or by ImageGen foreground eroded2px. This removes exterior fringe without reaching protected white-clothing interiors."
+      },
+      "qa": {
+        "id": "hazuki",
+        "width": 282,
+        "height": 587,
+        "transparent": 114735,
+        "opaqueWhite": 4200,
+        "changedRGB": 0,
+        "visualReview": "Verified on checkerboard and colored transformation stage."
+      },
+      "footerHandling": "No footer."
+    },
+    {
+      "id": "aiko",
+      "source": "aiko-transformed.png",
+      "output": "aiko-transformed-cutout.png",
+      "sourceSha256": "fec60677a5882afc2b057d368afbcd04952c57b307bf4c400607001b14bc35bf",
+      "outputSha256": "1e81d56df4f9cee1e8a6c5a26972c8620bc1aef15a532bb4ba8adf2de1285b88",
+      "prompt": "Use case: background-extraction. This is an exact background removal edit, NOT new illustration generation. The attached image is the sole edit target. Subject: Aiko, the blue-clothed witch with both arms extended and a raised pink wand at the left. Remove ONLY the exterior white/off-white background and the gray oval floor shadow underneath the character. Return a PNG with real transparent alpha (RGBA), no checkerboard painted into the image, no solid background. Preserve every existing character pixel and detail as closely as possible: exact face, eyes, glasses when present, outlines, original colors, white gloves and white clothing areas, hair, hat, wand, body, pose and proportions. White regions inside the character must remain opaque. Do NOT redraw, redesign, smooth, recolor, enhance, re-pose, add or remove character details. Do not remove the wand, its fine handle, fingers, shoes or thin outlines. Composition/framing: The original 316 by 453 portrait framing and all character/wand extremities; preserve the original aspect ratio and positioning with no crop, stretch or added decorative margin. No new shadows, no glow, no border, no text. The only requested change is clean extraction of the existing exact character art onto true transparency.",
+      "method": "Built-in ImageGen alpha guide resized to original dimensions and thresholded at128; original colored/dark linework opacity restored; neutral exterior halos removed only within the outer2-pixel guide band. Entire source RGB retained unchanged.",
+      "alphaRefinement": {
+        "generatedGuide": "Sharp resize(fit:fill) to source dimensions, extract alpha and threshold at128",
+        "sourceEdgeRule": "Restore source confident colored/dark pixels to alpha255 where guide alignment clipped them. White gloves, white cuffs and other white clothing are retained from the ImageGen alpha guide. Original RGB never changes.",
+        "rejectedMethod": "A temporary edge-connected-white flood-fill candidate was rejected during checkerboard QA because thin outline gaps removed white cuffs. That candidate is overwritten and not shipped.",
+        "outputDimensions": "Original source width and height preserved exactly",
+        "exteriorHaloRule": "Optional edge refinement: flood only source neutral pixels(min>=165,max-min<27) connected to image border, blocked by confident source foreground or by ImageGen foreground eroded2px. This removes exterior fringe without reaching protected white-clothing interiors."
+      },
+      "qa": {
+        "id": "aiko",
+        "width": 316,
+        "height": 453,
+        "transparent": 96184,
+        "opaqueWhite": 5488,
+        "changedRGB": 0,
+        "visualReview": "Verified on checkerboard and colored transformation stage."
+      },
+      "footerHandling": "No footer."
+    },
+    {
+      "id": "onpu",
+      "source": "onpu-transformed.png",
+      "output": "onpu-transformed-cutout.png",
+      "sourceSha256": "e335bd4ecbb052603a7b1388fc274dd2b50c86a504bbfb7161ec2161d3e909a7",
+      "outputSha256": "a455c6cf7a802d824a766b641e16b6827297113584a63b614cd0b558d4ac966f",
+      "prompt": "Use case: background-extraction. Edit target: the supplied existing full-body anime character illustration (Onpu, purple witch outfit), not a style reference. Perform ONLY background removal, preserving the original raster artwork as exactly as possible. Deliver a real RGBA PNG with genuine alpha transparency outside the character and wand. Remove the outside white/off-white backdrop, faint backdrop decorations, and the separate gray oval ground shadow. Keep every character pixel and antialiased outline, exact face, eyes, expression, hair, hat, pose, wand, colors, proportions and full-body framing unchanged. Crucially keep the white and pale-lilac clothing panels and gloves opaque: those belong to the character. Keep all tips, loose sleeves, hair, boots and the entire wand intact. No redrawing, restyling, recoloring, beautification, added details, resizing of body parts, new shadows, or cropped anatomy. Preserve the source aspect ratio and framing. Transparent means actual alpha, never a white or checkerboard background painted into the image.",
+      "method": "Original RGB unchanged; generated image alpha resized to original full frame; guide threshold128; confident source color/dark restoration; outside two-pixel guide boundary neutral-background flood only; Onpu neutral gray ground exclusion; Momoko original footer rows388–399 forced opaque. Additional high-brightness (minRGB235,chroma<30) exterior flood removes broad guide-drift halos; Onpu existing glove/chest white within x95–190,y211–259 protected against outline leaks. No generated RGB used.",
+      "alphaRefinement": {
+        "method": "Original RGB unchanged; generated image alpha resized to original full frame; guide threshold128; confident source color/dark restoration; outside two-pixel guide boundary neutral-background flood only; Onpu neutral gray ground exclusion; Momoko original footer rows388–399 forced opaque. Additional high-brightness (minRGB235,chroma<30) exterior flood removes broad guide-drift halos; Onpu existing glove/chest white within x95–190,y211–259 protected against outline leaks. No generated RGB used.",
+        "noRGBResizing": true,
+        "sourceHash": "e335bd4ecbb052603a7b1388fc274dd2b50c86a504bbfb7161ec2161d3e909a7",
+        "sourceUnchanged": true,
+        "generatedMaskHash": "b3c2fe7d0814e704cac058003326ecc6f8f1def88d031ed9012494cc0e97d17d",
+        "finalHash": "a455c6cf7a802d824a766b641e16b6827297113584a63b614cd0b558d4ac966f",
+        "width": 260,
+        "height": 470,
+        "confidentForegroundSamples": 31432,
+        "rawGuideClippedSamples": 1334,
+        "rawGuideClippedRatio": 0.042440824637312295,
+        "sourceForegroundRestored": 1334,
+        "finalClippedSamples": 0,
+        "finalClippedRatio": 0,
+        "edgeBackgroundPixelsRemoved": 2107,
+        "grayGroundPixelsRemoved": 456,
+        "transparentRatio": 0.632937806873977,
+        "rgbChannelDifferences": 0,
+        "footerOpaqueRows": null,
+        "visualReview": "Checkerboard review completed; original faces, Onpu white glove and boot cuff, Momoko white panels/boot laces and original footer retained.",
+        "extraBrightExteriorPixelsRemoved": 3574,
+        "whiteClothingProtection": {
+          "x1": 95,
+          "y1": 211,
+          "x2": 190,
+          "y2": 259
+        },
+        "footerNonopaquePixels": 0,
+        "finalBytes": 142542
+      },
+      "qa": {
+        "id": "onpu",
+        "width": 260,
+        "height": 470,
+        "transparent": 77345,
+        "opaqueWhite": 4775,
+        "changedRGB": 0,
+        "visualReview": "Verified on checkerboard and colored transformation stage."
+      },
+      "footerHandling": "No footer."
+    },
+    {
+      "id": "momoko",
+      "source": "momoko-transformed.png",
+      "output": "momoko-transformed-cutout.png",
+      "sourceSha256": "1065d277bc2c9bb4152245256b04e62e94f934f29e82f860e54058cf18ca6b55",
+      "outputSha256": "3ea2af65874611d06ad9a9408148012fc9ca010edb98aeeffea4bf6e9d9f02e5",
+      "prompt": "Use case: background-extraction. Edit target: the supplied existing full-body Momoko anime illustration with yellow/orange/white witch outfit; this is an exact raster extraction task, not a style reference. Remove ONLY the outside white backdrop and any external ground shadow, producing a real RGBA PNG with genuine alpha transparency. Preserve the original character artwork, exact facial expression, green eyes, yellow looped hair, hat, arms, hands, white/orange skirt, spread-leg pose, yellow boots and colors, linework, proportions and full-body framing. White clothing and white lace-up boot panels must remain opaque. Do not redraw, restyle, recolor, add details, or crop any part. IMPORTANT: preserve the tiny existing copyright notice along the bottom edge unchanged and readable, including its text and narrow gray footer strip. It is an original attribution mark, NOT background to delete; keep that footer intact in its original bottom position while making the rest of the outside backdrop actually transparent. Do not regenerate or replace the copyright wording, do not crop the footer, and do not remove it. Keep source aspect ratio and composition. No painted checkerboard, white replacement background or new ground shadow.",
+      "method": "Original RGB unchanged; generated image alpha resized to original full frame; guide threshold128; confident source color/dark restoration; outside two-pixel guide boundary neutral-background flood only; Onpu neutral gray ground exclusion; Momoko original footer rows388–399 forced opaque. Additional high-brightness (minRGB235,chroma<30) exterior flood removes broad guide-drift halos; Onpu existing glove/chest white within x95–190,y211–259 protected against outline leaks. No generated RGB used.",
+      "alphaRefinement": {
+        "method": "Original RGB unchanged; generated image alpha resized to original full frame; guide threshold128; confident source color/dark restoration; outside two-pixel guide boundary neutral-background flood only; Onpu neutral gray ground exclusion; Momoko original footer rows388–399 forced opaque. Additional high-brightness (minRGB235,chroma<30) exterior flood removes broad guide-drift halos; Onpu existing glove/chest white within x95–190,y211–259 protected against outline leaks. No generated RGB used.",
+        "noRGBResizing": true,
+        "sourceHash": "1065d277bc2c9bb4152245256b04e62e94f934f29e82f860e54058cf18ca6b55",
+        "sourceUnchanged": true,
+        "generatedMaskHash": "6dce601ce32e988011261dd145ea6a6a7e797f83b2e2c62ae1bb88ec598792a4",
+        "finalHash": "3ea2af65874611d06ad9a9408148012fc9ca010edb98aeeffea4bf6e9d9f02e5",
+        "width": 420,
+        "height": 400,
+        "confidentForegroundSamples": 33551,
+        "rawGuideClippedSamples": 6984,
+        "rawGuideClippedRatio": 0.20816071056004293,
+        "sourceForegroundRestored": 6984,
+        "finalClippedSamples": 0,
+        "finalClippedRatio": 0,
+        "edgeBackgroundPixelsRemoved": 1605,
+        "grayGroundPixelsRemoved": 0,
+        "transparentRatio": 0.7131607142857143,
+        "rgbChannelDifferences": 0,
+        "footerOpaqueRows": [
+          388,
+          399
+        ],
+        "visualReview": "Checkerboard review completed; original faces, Onpu white glove and boot cuff, Momoko white panels/boot laces and original footer retained.",
+        "extraBrightExteriorPixelsRemoved": 6475,
+        "whiteClothingProtection": null,
+        "footerNonopaquePixels": 0,
+        "finalBytes": 151027
+      },
+      "qa": {
+        "id": "momoko",
+        "width": 420,
+        "height": 400,
+        "transparent": 119811,
+        "opaqueWhite": 6236,
+        "changedRGB": 0,
+        "visualReview": "Verified on checkerboard and colored transformation stage."
+      },
+      "footerHandling": "Original source RGB and opacity retained for bottom notice, rows388–399. Generated lettering is not used."
+    }
+  ]
+}

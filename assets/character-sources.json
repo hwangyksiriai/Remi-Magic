@@ -1,0 +1,102 @@
+[
+  {
+    "id": "remi",
+    "outfit": "casual",
+    "file": "remi-casual.png",
+    "source": "codex-clipboard-43889ffe-c867-41f3-aebc-0cc733a690b4.png",
+    "sha256": "be9125c3d80de7111a46c1b24f4973e0d6ae29a29d1191ebf23884d3decb33ba",
+    "width": 288,
+    "height": 638,
+    "hasAlpha": true
+  },
+  {
+    "id": "hazuki",
+    "outfit": "casual",
+    "file": "hazuki-casual.png",
+    "source": "codex-clipboard-06677b8b-6915-4d5a-bb32-b6a08fccd5aa.png",
+    "sha256": "22205e1607d032026ccbcb888eef7b935659e38984568a72119bd829649dbc35",
+    "width": 203,
+    "height": 614,
+    "hasAlpha": true
+  },
+  {
+    "id": "aiko",
+    "outfit": "casual",
+    "file": "aiko-casual.png",
+    "source": "codex-clipboard-46ace5b3-4272-4308-8131-10c37bab3744.png",
+    "sha256": "c3f0940ecfbc239d1d0cb5d640c04b152036a18f85f03fd0de4e5e451ed8c343",
+    "width": 232,
+    "height": 630,
+    "hasAlpha": true
+  },
+  {
+    "id": "onpu",
+    "outfit": "casual",
+    "file": "onpu-casual.png",
+    "source": "codex-clipboard-fe5f2663-08f6-43a1-8527-0c53dc52b2db.png",
+    "sha256": "dfaba71fa2c61b84421f7d34549b6b51e9584112ad5a067d2d3134c5bf0ed87f",
+    "width": 221,
+    "height": 631,
+    "hasAlpha": true
+  },
+  {
+    "id": "momoko",
+    "outfit": "casual",
+    "file": "momoko-casual.png",
+    "source": "codex-clipboard-718d667f-ba2a-4943-aeaf-fdef3e8c9729.png",
+    "sha256": "9b465cb34971bfb4e380eb5de7c68db252edac6a8eb05b43939c1b5c66cba39e",
+    "width": 230,
+    "height": 638,
+    "hasAlpha": true
+  },
+  {
+    "id": "remi",
+    "outfit": "transformed",
+    "file": "remi-transformed.png",
+    "source": "codex-clipboard-620b41e6-3cf2-47fa-a710-003dd71f6c30.png",
+    "sha256": "143bc4394960e0d5c82d16c3febedd4194a4c64f1fa6e6ba2ddadaa11908e48f",
+    "width": 1000,
+    "height": 1534,
+    "hasAlpha": true
+  },
+  {
+    "id": "aiko",
+    "outfit": "transformed",
+    "file": "aiko-transformed.png",
+    "source": "codex-clipboard-62cb1d87-9fc6-4cac-906e-5f58e07f8ca2.png",
+    "sha256": "fec60677a5882afc2b057d368afbcd04952c57b307bf4c400607001b14bc35bf",
+    "width": 316,
+    "height": 453,
+    "hasAlpha": false
+  },
+  {
+    "id": "momoko",
+    "outfit": "transformed",
+    "file": "momoko-transformed.png",
+    "source": "codex-clipboard-da406bd2-75af-45cc-93cb-261101a2d690.png",
+    "sha256": "1065d277bc2c9bb4152245256b04e62e94f934f29e82f860e54058cf18ca6b55",
+    "width": 420,
+    "height": 400,
+    "hasAlpha": false
+  },
+  {
+    "id": "onpu",
+    "outfit": "transformed",
+    "file": "onpu-transformed.png",
+    "source": "codex-clipboard-8d9a6285-b6e3-4b55-b979-eaf1a81d160e.png",
+    "sha256": "e335bd4ecbb052603a7b1388fc274dd2b50c86a504bbfb7161ec2161d3e909a7",
+    "width": 260,
+    "height": 470,
+    "hasAlpha": false
+  },
+  {
+    "id": "hazuki",
+    "outfit": "transformed",
+    "file": "hazuki-transformed.png",
+    "source": "codex-clipboard-28e9792b-b5c3-42e8-9d6f-c7973344b17c.png",
+    "sha256": "876af2407f4fa763b7992629b99c0d162fd4f024418d2abee8ebb7a161ea341b",
+    "width": 282,
+    "height": 587,
+    "hasAlpha": false
+  }
+]

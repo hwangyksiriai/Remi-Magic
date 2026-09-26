@@ -1,14 +1,5 @@
-const DEFAULTS = Object.freeze({
-  enabled: true,
-  sound: true,
-  captureOnTransform: true,
-  trail: true,
-  character: 'remi',
-  size: 160,
-  volume: 0.22,
-  holdDuration: 900,
-});
-const toggles = ['enabled', 'sound', 'captureOnTransform', 'trail'];
+import {DEFAULTS,normalizeSettings} from './settings.js';
+const toggles = ['enabled', 'sound', 'captureOnTransform', 'trail', 'voiceFallback'];
 const ranges = ['size', 'volume', 'holdDuration'];
 const status = document.querySelector('#save-status');
 const inputs = Object.fromEntries(Object.keys(DEFAULTS).map(key => [key, document.getElementById(key)]));
@@ -16,21 +7,12 @@ let settings = { ...DEFAULTS };
 let writeChain = Promise.resolve();
 let revision = 0;
 
-function normalize(raw = {}) {
-  raw = raw && typeof raw === 'object' ? raw : {};
-  const next = { ...DEFAULTS };
-  for (const key of toggles) if (typeof raw[key] === 'boolean') next[key] = raw[key];
-  if (['remi', 'aiko', 'hazuki'].includes(raw.character)) next.character = raw.character;
-  for (const key of ranges) {
-    const value = raw[key];
-    if (typeof value === 'number' && Number.isFinite(value)) next[key] = Math.min(Number(inputs[key].max), Math.max(Number(inputs[key].min), value));
-  }
-  return next;
-}
+const normalize=normalizeSettings;
 
 function render() {
   for (const key of toggles) inputs[key].checked = settings[key];
   inputs.character.value = settings.character;
+  inputs.language.value = settings.language;
   for (const key of ranges) {
     const input = inputs[key];
     input.value = settings[key];
@@ -72,6 +54,10 @@ async function init() {
     });
     inputs.character.addEventListener('change', () => {
       settings.character = inputs.character.value;
+      persist();
+    });
+    inputs.language.addEventListener('change', () => {
+      settings.language = inputs.language.value;
       persist();
     });
     document.querySelector('#reset').addEventListener('click', () => {
