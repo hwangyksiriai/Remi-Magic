@@ -4,13 +4,13 @@ const clamp=value=>Math.max(0,Math.min(1,Number.isFinite(value)?value:0));
 const ease=value=>{const t=clamp(value);return t*t*(3-2*t);};
 export const TRANSFORMATION_PHASES=Object.freeze([
   {id:'before',start:0,end:.16,label:'변신 전',labelJa:'変身前'},
-  {id:'tap',start:.16,end:.34,label:'리듬탭에 마법을 모아요',labelJa:'リズムタップに魔法を集めて'},
-  {id:'light',start:.34,end:.5,label:'리듬탭의 빛이 감싸요',labelJa:'リズムタップの光に包まれて'},
+  {id:'gather',start:.16,end:.34,label:'마법이 모여요',labelJa:'魔法が集まる'},
+  {id:'light',start:.34,end:.5,label:'빛이 감싸요',labelJa:'光に包まれて'},
   {id:'change',start:.5,end:.68,label:'마법 의상으로 변신해요',labelJa:'魔法の衣装に変身'},
   {id:'reveal',start:.68,end:.86,label:'변신 후 모습이 나타나요',labelJa:'変身した姿が現れる'},
   {id:'pose',start:.86,end:1,label:'변신 완료! 마법 사진 준비',labelJa:'変身完了！魔法の写真の準備'},
 ].map(Object.freeze));
-export const TRANSFORMATION_PROFILES=Object.freeze(Object.fromEntries(['remi','hazuki','aiko','onpu','momoko'].map(id=>[id,Object.freeze({duration:10,activation:'rhythm-tap',phases:TRANSFORMATION_PHASES,fidelity:'supplied-original-artwork',referenceBasis:'User-supplied before/after PNGs; light transition is authored, not original animation frames.'})])));
+export const TRANSFORMATION_PROFILES=Object.freeze(Object.fromEntries(['remi','hazuki','aiko','onpu','momoko'].map(id=>[id,Object.freeze({duration:10,activation:'magic-light',phases:TRANSFORMATION_PHASES,fidelity:'supplied-original-artwork',referenceBasis:'User-supplied before/after PNGs; light transition is authored, not original animation frames.'})])));
 
 /** Two real supplied images, never invented intermediate character drawings. */
 export function sampleTransformation(elapsed,duration=10,{character='remi',reducedMotion=false}={}) {
@@ -21,7 +21,7 @@ export function sampleTransformation(elapsed,duration=10,{character='remi',reduc
   const artworkMix=ease((progress-.5)/.18);
   // A gradual pulse, not a rapid flash. Reduced motion uses a steady soft glow.
   const flash=reducedMotion?(progress>=.34&&progress<.74?.15:0):progress<.5?ease((progress-.34)/.16)*.7:(1-ease((progress-.5)/.24))*.7;
-  return {character:getCharacter(character).id,phase:phase.id,phaseLabel:phase.label,phaseLabelJa:phase.labelJa,phaseProgress:clamp((progress-phase.start)/(phase.end-phase.start)),progress,elapsed:seconds,duration:total,artworkMix,flash,tapVisible:progress>=.12&&progress<.62,tapProgress:clamp((progress-.12)/.38),activation:'rhythm-tap',pose:progress>=.86?'hero':'idle',rotation:0,camera:{scale:1,y:0},done:progress>=1};
+  return {character:getCharacter(character).id,phase:phase.id,phaseLabel:phase.label,phaseLabelJa:phase.labelJa,phaseProgress:clamp((progress-phase.start)/(phase.end-phase.start)),progress,elapsed:seconds,duration:total,artworkMix,flash,tapVisible:false,activation:'magic-light',pose:progress>=.86?'hero':'idle',rotation:0,camera:{scale:1,y:0},done:progress>=1};
 }
 
 /** Local rhythm-tap effect for the desktop; the web engine uses its 3D model. */
@@ -55,7 +55,7 @@ export function drawRhythmTap2D(ctx,{x,y,size=80,time=0,charge=1,reducedMotion=f
   ctx.restore();
 }
 
-export function createTransformationStage(container,{character='remi',reducedMotion=false,assetBase='assets/',showTap=true}={}) {
+export function createTransformationStage(container,{character='remi',reducedMotion=false,assetBase='assets/'}={}) {
   const canvas=document.createElement('canvas');canvas.className='transformation-artwork';canvas.setAttribute('role','img');canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none';container.append(canvas);
   const ctx=canvas.getContext('2d');let selected=getCharacter(character).id,disposed=false,latest=sampleTransformation(0),dimensions={};
   const ready=preloadCharacterAssets(assetBase);
@@ -77,7 +77,6 @@ export function createTransformationStage(container,{character='remi',reducedMot
       ctx.globalAlpha=1;
     }
     if(latest.flash>0){const glow=ctx.createRadialGradient(cx,height*.48,15,cx,height*.48,210*scale);glow.addColorStop(0,`rgba(255,250,240,${latest.flash})`);glow.addColorStop(1,'rgba(255,250,240,0)');ctx.fillStyle=glow;ctx.fillRect(0,0,width,height);}
-    if(showTap&&latest.tapVisible)drawRhythmTap2D(ctx,{x:cx-Math.min(width*.28,165*scale),y:height*.34,size:64*scale,time:elapsed,charge:latest.tapProgress,reducedMotion:reduced});
     canvas.setAttribute('aria-label',options.language==='ja'?`${c.nameJa} · ${latest.phaseLabelJa}`:`${c.name} · ${latest.phaseLabel}`);return latest;
   }
   return {canvas,ready,update,setCharacter(id){selected=getCharacter(id).id;},getImage(){return canvas;},getState(){return latest;},dispose(){disposed=true;canvas.remove();canvas.width=canvas.height=1;}};

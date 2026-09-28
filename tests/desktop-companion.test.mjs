@@ -80,10 +80,34 @@ test('character selection covers all five characters and preserves explicit choi
 
 test('invalid saved settings cannot enable arbitrary characters, modes, frequencies, or extreme audio volume', () => {
   assert.deepEqual(validateSettings({ enabled: 'yes', language: 'fr', character: 'unknown', frequency: '__proto__', reducedMotion: 'true', volume: Infinity, sound: 'yes', extra: 'ignored' }), {
-    enabled: true, language: 'ko', character: 'random', frequency: 'normal', reducedMotion: false, volume: 0.4, sound: false,
+    enabled: true, language: 'ko', languageFallback: true, character: 'random', frequency: 'normal', reducedMotion: false, volume: 0.4, sound: false,
   });
   assert.equal(validateSettings({ volume: -3 }).volume, 0);
   assert.equal(validateSettings({ volume: 300 }).volume, 1);
+});
+
+test('desktop recording fallback defaults on for old settings and accepts only boolean preferences', () => {
+  assert.equal(validateSettings({language:'ja'}).languageFallback,true);
+  assert.equal(validateSettings({languageFallback:false}).languageFallback,false);
+  assert.equal(validateSettings({languageFallback:true}).languageFallback,true);
+  for(const languageFallback of ['false',0,null,[]])assert.equal(validateSettings({languageFallback}).languageFallback,true);
+});
+
+test('changing desktop recording fallback ends the current scene before starting one with the new preference', () => {
+  const clock=fakeClock(),starts=[],ends=[];
+  const scheduler=new CompanionScheduler({...clock,settings:{character:'momoko',sound:true},onStart:scene=>starts.push(scene),onEnd:scene=>ends.push(scene)});
+  scheduler.show('transform');
+  assert.equal(starts[0].settings.languageFallback,true);
+  scheduler.update({languageFallback:false});
+  assert.equal(scheduler.active,null);
+  assert.equal(ends[0].id,starts[0].id);
+  assert.equal(ends[0].reason,'settings-changed');
+  scheduler.show('transform');
+  assert.equal(starts[1].settings.languageFallback,false);
+  assert.equal(starts[1].settings.sound,true);
+  assert.equal(starts[1].settings.character,'momoko');
+  assert.equal(starts[0].settings.languageFallback,true,'the previous scene snapshot is unchanged');
+  scheduler.destroy();
 });
 
 test('multi-monitor work areas preserve negative screen positions and avoid the taskbar', () => {

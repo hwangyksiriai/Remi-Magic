@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MagicAudio, MAX_CLIP_BYTES, describeVoiceStatus } from '../src/audio.js';
+import { MagicAudio, MAX_CLIP_BYTES, describeVoiceStatus, resolveVoiceClip } from '../src/audio.js';
 import { VOICE_PROFILES, selectVoice } from '../src/voice-profiles.js';
 import { BUNDLED_VOICES, getBundledClip } from '../src/bundled-voices.js';
 
@@ -91,13 +91,15 @@ test('silent scroll input does not throttle the first audible scroll', t => {
   assert.equal(sources.length, 1);
 });
 
-test('duration reserves ten seconds and includes the full selected-language recording', t => {
+test('duration reserves ten seconds and includes the full resolved character recording', t => {
   const { audio } = audioFixture(t);
   assert.equal(audio.duration('aiko'), 10);
   audio.buffers['remi:ko'].duration = 15;
   assert.equal(audio.duration('remi'), 16.2);
   audio.configure({ language: 'ja' });
-  assert.equal(audio.duration('remi'), 10, 'Korean recording cannot extend the Japanese sequence');
+  assert.equal(audio.duration('remi'), 10, 'an unregistered buffer cannot substitute a missing recording slot');
+  audio.clipData['remi:ko'] = clip;
+  assert.equal(audio.duration('remi'), 16.2, 'same-character recorded fallback reserves its full duration');
   audio.buffers.transform = { duration: 12 };
   assert.equal(audio.duration('aiko'), 12);
 });
@@ -195,7 +197,7 @@ test('five profiles choose five matching installed voices and different delivery
   assert.equal(selectVoice(synthesis, 'ja', 'remi'), null);
 });
 
-test('missing language never speaks another language', async t => {
+test('missing system voice never speaks another language', async t => {
   const { audio, spoken } = speechFixture(t, [{ name: 'English only', lang: 'en-US' }]);
   const pending = audio.transform('remi'); await flush(); t.mock.timers.tick(1200);
   assert.equal((await pending).reason, 'language-voice-unavailable');
@@ -334,7 +336,8 @@ test('default references are used automatically, user imports override them, and
   assert.equal(audio.clipData['remi:ko'].data, BUNDLED_VOICES['remi:ko'].data);
   assert.equal(audio.getVoiceStatus('remi').origin, 'reference-excerpt');
   audio.configure({ language: 'ja' });
-  assert.equal(audio.getVoiceStatus('hazuki').reason, 'fallback-disabled');
+  assert.equal(audio.getVoiceStatus('hazuki').language, 'ko');
+  assert.equal(audio.getVoiceStatus('hazuki').languageFallback, true);
   assert.equal(audio.buffers['hazuki:ja'], undefined);
 });
 
@@ -350,7 +353,7 @@ test('legacy Korean user recording still overrides its built-in slot', async t =
   assert.equal(audio.clipData['remi:ja'].origin, 'reference-excerpt');
 });
 
-test('source final calls start at the seven-second reveal and stop safely while waiting', async t => {
+test('bundled spell voice starts near transformation entry and stops safely while waiting', async t => {
   const { audio: fixture, sources } = audioFixture(t);
   const audio = new MagicAudio({ bundledClips: { 'remi:ko': BUNDLED_VOICES['remi:ko'] } });
   t.after(() => audio.dispose());
@@ -361,9 +364,9 @@ test('source final calls start at the seven-second reveal and stop safely while 
   await audio.setClips();
   const pending = audio.transform('remi');
   await flush();
-  assert.equal(sources[0].startsAt, 17, 'context at10 + final-call delay7');
-  assert.equal(audio.voiceDelay('remi'), 7);
-  assert.equal(audio.duration('remi'), 10.006);
+  assert.equal(sources[0].startsAt, 11.2, 'context at 10 + spell entrance at 1.2 seconds');
+  assert.equal(audio.voiceDelay('remi'), 1.2);
+  assert.equal(audio.duration('remi'), 10);
   audio.stop();
   const result = await pending;
   assert.equal(result.reason, 'cancelled');
@@ -372,4 +375,367 @@ test('source final calls start at the seven-second reveal and stop safely while 
   await audio.setClips({ 'remi:ko': clip });
   assert.equal(audio.voiceDelay('remi'), 1.2, 'custom full speech keeps its early entrance');
   assert.equal(audio.duration('remi'), 10);
+});
+
+test('first gesture resumes before bundled decoding and transform reuses the unlocked context', async t => {
+  const { audio: fixture, sources } = audioFixture(t);
+  const context = fixture.ctx;
+  const events = [];
+  let finishDecode;
+  context.state = 'suspended';
+  context.createGain = () => ({ gain: { value: 0 }, connect() {} });
+  context.decodeAudioData = () => new Promise(resolve => { finishDecode = resolve; });
+  context.resume = () => {
+    events.push('resume');
+    context.state = 'running';
+    return Promise.resolve();
+  };
+  installWindow(t, { AudioContext: class { constructor() { return context; } } });
+  const audio = new MagicAudio({ bundledClips: { 'remi:ko': BUNDLED_VOICES['remi:ko'] } });
+  t.after(() => audio.dispose());
+  audio.tone = () => {};
+
+  const ready = audio.unlock();
+  assert.deepEqual(events, ['resume'], 'resume must happen synchronously inside the user gesture');
+  assert.equal(sources.length, 0);
+  finishDecode({ duration: 3.006 });
+  await ready;
+  const playback = audio.transform('remi');
+  await flush();
+  assert.deepEqual(events, ['resume'], 'an already unlocked context needs no delayed resume');
+  assert.equal(sources[0].startsAt, 11.2);
+  sources[0].onended();
+  assert.equal((await playback).source, 'recording');
+});
+
+test('muting during first bundled decode prevents the delayed voice from starting', async t => {
+  const { audio: fixture, sources } = audioFixture(t);
+  const context = fixture.ctx;
+  let finishDecode;
+  context.createGain = () => ({ gain: { value: 0 }, connect() {} });
+  context.decodeAudioData = () => new Promise(resolve => { finishDecode = resolve; });
+  installWindow(t, { AudioContext: class { constructor() { return context; } } });
+  const audio = new MagicAudio({ bundledClips: { 'remi:ko': BUNDLED_VOICES['remi:ko'] } });
+  t.after(() => audio.dispose());
+  audio.tone = () => {};
+  const playback = audio.transform('remi');
+  audio.configure({ sound: false });
+  finishDecode({ duration: 3.006 });
+  assert.equal((await playback).reason, 'cancelled');
+  assert.equal(sources.length, 0);
+});
+
+test('missing bundled language plays the same character original and reports its actual language', async t => {
+  for (const [character, requestedLanguage, actualLanguage] of [['momoko', 'ko', 'ja'], ['hazuki', 'ja', 'ko'], ['onpu', 'ja', 'ko']]) {
+    const { audio: fixture, sources } = audioFixture(t);
+    const audio = new MagicAudio();
+    t.after(() => audio.dispose());
+    audio.ctx = fixture.ctx;
+    audio.master = fixture.master;
+    audio.tone = () => {};
+    audio.configure({ language: requestedLanguage });
+    await audio.setClips();
+    const playback = audio.transform(character);
+    await flush();
+    assert.equal(sources.length, 1);
+    assert.equal(sources[0].buffer, audio.buffers[`${character}:${actualLanguage}`]);
+    assert.equal(sources[0].startsAt, 11.2);
+    sources[0].onended();
+    const status = await playback;
+    assert.equal(status.source, 'recording');
+    assert.equal(status.origin, 'reference-excerpt');
+    assert.equal(status.language, actualLanguage);
+    assert.equal(status.requestedLanguage, requestedLanguage);
+    assert.equal(status.languageFallback, true);
+    assert.equal(status.reason, null);
+    assert.equal(audio.language, requestedLanguage, 'playback must not overwrite the user language setting');
+    assert.equal(audio.voiceFallback, false, 'recording fallback does not enable system speech');
+    assert.match(describeVoiceStatus(status), /같은 캐릭터/);
+  }
+});
+
+test('requested-language user import takes priority over an alternate-language original', async t => {
+  const { audio: fixture, sources } = audioFixture(t);
+  const audio = new MagicAudio();
+  t.after(() => audio.dispose());
+  audio.ctx = fixture.ctx;
+  audio.master = fixture.master;
+  audio.tone = () => {};
+  await audio.setClips({ 'momoko:ko': { ...clip, name: 'Korean Momoko' } });
+  const playback = audio.transform('momoko');
+  await flush();
+  assert.equal(sources[0].buffer, audio.buffers['momoko:ko']);
+  sources[0].onended();
+  const status = await playback;
+  assert.equal(status.language, 'ko');
+  assert.equal(status.languageFallback, false);
+  assert.equal(status.origin, 'user-import');
+  assert.equal(status.name, 'Korean Momoko');
+});
+
+test('alternate-language recording duration is reserved and mute still cancels playback', async t => {
+  const { audio: fixture, sources } = audioFixture(t);
+  const audio = new MagicAudio();
+  t.after(() => audio.dispose());
+  audio.ctx = fixture.ctx;
+  audio.master = fixture.master;
+  audio.tone = () => {};
+  await audio.setClips();
+  audio.buffers['momoko:ja'].duration = 15;
+  assert.equal(audio.duration('momoko'), 16.2);
+  const playback = audio.transform('momoko');
+  await flush();
+  audio.configure({ sound: false });
+  assert.equal((await playback).reason, 'cancelled');
+  assert.ok(sources[0].stopped);
+  const muted = await audio.transform('momoko');
+  assert.equal(muted.source, 'muted');
+  assert.equal(sources.length, 1, 'muted fallback cannot allocate another source');
+});
+
+test('voice clip resolver never borrows another character and understands legacy user imports', () => {
+  assert.equal(resolveVoiceClip({ 'aiko:ja': BUNDLED_VOICES['aiko:ja'] }, 'momoko', 'ko'), null);
+  assert.equal(resolveVoiceClip({}, 'remi', 'ko'), null);
+  const legacy = { ...clip, name: 'Legacy Korean' };
+  assert.equal(resolveVoiceClip({ ...BUNDLED_VOICES, remi: legacy }, 'remi', 'ko').clip, legacy);
+  const explicit = { ...clip, name: 'Explicit Korean', origin: 'user-import' };
+  assert.equal(resolveVoiceClip({ ...BUNDLED_VOICES, remi: legacy, 'remi:ko': explicit }, 'remi', 'ko').clip, explicit);
+  assert.equal(resolveVoiceClip(BUNDLED_VOICES, 'momoko', 'ko').key, 'momoko:ja');
+});
+
+test('click and scroll switches block imported clips independently', t => {
+  const {audio,sources}=audioFixture(t);
+  audio.configure({clickSound:false});
+  audio.click();
+  assert.equal(audio.playClip('click'),false);
+  audio.scroll(1);
+  assert.equal(sources.length,1);
+  assert.equal(sources[0].buffer,audio.buffers.scroll);
+  audio.configure({clickSound:true,scrollSound:false});
+  assert.equal(sources[0].stopped,true);
+  audio.click(); audio.scroll(-1);
+  assert.equal(sources.length,2);
+  assert.equal(sources[1].buffer,audio.buffers.click);
+});
+
+test('channel switches stop only owned sources in their channel, including delayed ones', t => {
+  const {audio,sources}=audioFixture(t);
+  audio.buffers.transform={duration:10};
+  for(const key of ['click','scroll','remi:ko','transform'])audio.playClip(key,2);
+  audio.configure({scrollSound:false});
+  assert.deepEqual(sources.map(source=>Boolean(source.stopped)),[false,true,false,false]);
+  audio.configure({spellVoice:false});
+  assert.deepEqual(sources.map(source=>Boolean(source.stopped)),[false,true,true,false]);
+  audio.configure({transformSound:false});
+  assert.deepEqual(sources.map(source=>Boolean(source.stopped)),[false,true,true,true]);
+  assert.equal(audio.nodes.size,1);
+  audio.configure({sound:false});
+  assert.ok(sources.every(source=>source.stopped));
+  assert.equal(audio.nodeChannels.size,0);
+});
+
+test('synthesized clicks, scrolls and capture use their own channels', t => {
+  const {audio}=audioFixture(t);
+  audio.buffers={};
+  const oscillators=[];
+  audio.ctx.createGain=()=>({gain:{setValueAtTime(){},linearRampToValueAtTime(){},exponentialRampToValueAtTime(){}},connect(){},disconnect(){}});
+  audio.ctx.createOscillator=()=>{
+    const osc={frequency:{},connect(){},disconnect(){},start(){},stop(){this.stops=(this.stops||0)+1;}};
+    oscillators.push(osc);return osc;
+  };
+  audio.configure({clickSound:false,scrollSound:false,transformSound:false});
+  audio.click();audio.scroll(1);audio.capture();
+  assert.equal(oscillators.length,0);
+  audio.configure({clickSound:true});audio.click();
+  assert.equal(oscillators.length,9);
+  assert.ok([...audio.nodeChannels.values()].every(channel=>channel==='clickSound'));
+  audio.configure({scrollSound:true});audio.scroll(1);
+  assert.equal(oscillators.length,18);
+  audio.configure({clickSound:false});
+  assert.ok(oscillators.slice(0,9).every(osc=>osc.stops===2),'click oscillators were stopped before their scheduled ends');
+  assert.ok(oscillators.slice(9).every(osc=>osc.stops===1),'scroll oscillators keep their original scheduled ends');
+  assert.equal(audio.nodeCleanups.size,9);
+  audio.configure({transformSound:true});audio.capture();
+  assert.equal(oscillators.length,27);
+});
+
+test('spoken voice and transformation effect can each play without the other', async t => {
+  const {audio,sources}=audioFixture(t);
+  audio.buffers.transform={duration:4};
+  audio.configure({spellVoice:false});
+  assert.deepEqual(audio.getVoiceStatus('remi'),{source:'muted',reason:'voice-disabled',language:'ko'});
+  const effectOnly=audio.transform('remi');await flush();
+  assert.equal(sources.length,1);
+  assert.equal(sources[0].buffer,audio.buffers.transform);
+  sources[0].onended();
+  assert.equal((await effectOnly).reason,'voice-disabled');
+  audio.configure({spellVoice:true,transformSound:false});
+  const voiceOnly=audio.transform('remi');await flush();
+  assert.equal(sources.length,2);
+  assert.equal(sources[1].buffer,audio.buffers['remi:ko']);
+  sources[1].onended();
+  assert.equal((await voiceOnly).source,'recording');
+});
+
+test('disabling a playing voice resolves as muted and preserves the transformation effect', async t => {
+  const {audio,sources}=audioFixture(t);
+  audio.buffers.transform={duration:4};
+  const pending=audio.transform('remi');await flush();
+  audio.configure({spellVoice:false});
+  assert.equal(sources[0].stopped,true);
+  assert.equal(sources[1].stopped,undefined);
+  sources[1].onended();
+  const status=await pending;
+  assert.equal(status.source,'muted');
+  assert.equal(status.reason,'voice-disabled');
+});
+
+test('a disabled voice never queues fallback speech or cancels unrelated page speech', async t => {
+  const fixture=speechFixture(t);
+  fixture.synthesis.speaking=true;
+  const pending=fixture.audio.transform('remi');await flush();
+  fixture.audio.configure({spellVoice:false});
+  t.mock.timers.tick(1200);
+  assert.equal((await pending).reason,'voice-disabled');
+  assert.equal(fixture.spoken.length,0);
+  assert.equal(fixture.cancels,0);
+  const disabled=await fixture.audio.transform('remi');
+  assert.equal(disabled.reason,'voice-disabled');
+  assert.equal(fixture.audio.speechJobs.size,0);
+});
+
+test('disabling an active owned utterance leaves other audio channels enabled', async t => {
+  const fixture=speechFixture(t);
+  const pending=fixture.audio.transform('remi');await flush();t.mock.timers.tick(1200);
+  fixture.audio.configure({spellVoice:false});
+  assert.equal((await pending).reason,'voice-disabled');
+  assert.equal(fixture.cancels,1);
+  assert.equal(fixture.audio.clickSound,true);
+  assert.equal(fixture.audio.transformSound,true);
+  fixture.audio.stop();
+  assert.equal(fixture.cancels,1);
+});
+
+test('muted channels neither extend transformation duration nor report loading voices', t => {
+  const {audio}=audioFixture(t);
+  audio.buffers['remi:ko'].duration=15;
+  audio.buffers.transform={duration:14};
+  assert.equal(audio.duration('remi'),16.2);
+  audio.configure({spellVoice:false});
+  assert.equal(audio.duration('remi'),14);
+  audio.configure({transformSound:false});
+  assert.equal(audio.duration('remi'),10);
+  const staged=new MagicAudio();t.after(()=>staged.dispose());
+  staged.configure({spellVoice:false});
+  assert.equal(staged.getVoiceStatusText('remi'),'음성이 꺼져 있어요.');
+});
+
+test('disabling and re-enabling voice during decoding does not revive the old scheduled request', async t => {
+  const {audio,sources}=audioFixture(t);
+  let finishDecode;
+  audio.ctx.decodeAudioData=()=>new Promise(resolve=>{finishDecode=resolve;});
+  audio.configure({transformSound:false});
+  audio.setClips({'remi:ko':clip});
+  const pending=audio.transform('remi');
+  audio.configure({spellVoice:false});audio.configure({spellVoice:true});
+  finishDecode({duration:3});
+  assert.equal((await pending).reason,'voice-disabled');
+  assert.equal(sources.length,0);
+});
+
+test('recording language fallback can be disabled without changing requested-language lookup priority',()=>{
+  const selected={...clip,name:'Korean import',origin:'user-import'};
+  const alternate={...clip,name:'Japanese import',origin:'user-import'};
+  const clips={'momoko:ko':selected,'momoko:ja':alternate};
+  for(const languageFallback of [true,false]){
+    const resolved=resolveVoiceClip(clips,'momoko','ko',{languageFallback});
+    assert.equal(resolved.clip,selected);
+    assert.equal(resolved.language,'ko');
+    assert.equal(resolved.languageFallback,false);
+  }
+  assert.equal(resolveVoiceClip({'momoko:ja':alternate},'momoko','ko',{languageFallback:false}),null);
+  assert.equal(resolveVoiceClip({'momoko:ja':alternate},'momoko','ko').clip,alternate);
+  assert.equal(resolveVoiceClip({remi:selected},'remi','ko',{languageFallback:false}).clip,selected,'legacy requested-language imports remain usable');
+  assert.equal(resolveVoiceClip({'aiko:ko':selected},'momoko','ko',{languageFallback:false}),null);
+});
+
+test('disallowed alternate language does not play, extend duration, or report itself as the selected recording',async t=>{
+  const {audio,sources}=audioFixture(t);
+  t.mock.timers.enable({apis:['setTimeout']});
+  audio.tone=()=>{};
+  await audio.setClips({'momoko:ja':clip});
+  audio.buffers['momoko:ja'].duration=15;
+  assert.equal(audio.duration('momoko'),16.2);
+  audio.configure({languageFallback:false});
+  assert.equal(audio.duration('momoko'),10);
+  assert.deepEqual(audio.getVoiceStatus('momoko'),{source:'unavailable',reason:'language-fallback-disabled',language:'ko',requestedLanguage:'ko',availableLanguage:'ja'});
+  assert.match(audio.getVoiceStatusText('momoko'),/한국어 녹음 없음 · 다른 언어 자동 대체 꺼짐/);
+  const pending=audio.transform('momoko');await flush();t.mock.timers.tick(1200);
+  const status=await pending;
+  assert.equal(status.reason,'language-fallback-disabled');
+  assert.equal(status.language,'ko');
+  assert.equal(sources.length,0);
+  audio.configure({languageFallback:true});
+  assert.equal(audio.getVoiceStatus('momoko').language,'ja');
+  assert.equal(audio.getVoiceStatus('momoko').languageFallback,true);
+  assert.equal(audio.duration('momoko'),16.2);
+});
+
+test('disabled recording language fallback still permits explicitly enabled selected-language system speech',async t=>{
+  const {audio,sources,spoken}=speechFixture(t);
+  await audio.setClips({'momoko:ja':clip});
+  audio.configure({languageFallback:false,voiceFallback:true,language:'ko'});
+  const pending=audio.transform('momoko');await flush();t.mock.timers.tick(1200);
+  assert.equal(sources.length,0);
+  assert.equal(spoken.length,1);
+  assert.equal(spoken[0].lang,'ko-KR');
+  assert.equal(spoken[0].text,VOICE_PROFILES.momoko.ko);
+  spoken[0].onend();
+  const status=await pending;
+  assert.equal(status.source,'system');
+  assert.equal(status.language,'ko');
+  assert.equal(status.voiceName,'Korean');
+});
+
+test('changing recording language fallback stops an alternate clip already scheduled for the spell',async t=>{
+  const {audio,sources}=audioFixture(t);
+  audio.tone=()=>{};
+  await audio.setClips({'momoko:ja':clip});
+  const pending=audio.transform('momoko');await flush();
+  assert.equal(sources[0].startsAt,11.2);
+  audio.configure({languageFallback:false});
+  const status=await pending;
+  assert.equal(status.reason,'cancelled');
+  assert.equal(status.language,'ja');
+  assert.equal(sources[0].stopped,true);
+  assert.equal(audio.nodes.size,0);
+});
+
+test('changing recording language fallback during decoding cannot revive an old transformation',async t=>{
+  const {audio,sources}=audioFixture(t);
+  let finishDecode;
+  audio.ctx.decodeAudioData=()=>new Promise(resolve=>{finishDecode=resolve;});
+  audio.tone=()=>{};
+  audio.setClips({'momoko:ja':clip});
+  const pending=audio.transform('momoko');
+  audio.configure({languageFallback:false});
+  audio.configure({languageFallback:true});
+  finishDecode({duration:3});
+  assert.equal((await pending).reason,'cancelled');
+  assert.equal(sources.length,0);
+});
+
+test('changing recording language fallback cancels pending and active owned system speech',async t=>{
+  const fixture=speechFixture(t);
+  const delayed=fixture.audio.transform('remi');await flush();
+  fixture.audio.configure({languageFallback:false});
+  t.mock.timers.tick(1200);
+  assert.equal((await delayed).reason,'cancelled');
+  assert.equal(fixture.spoken.length,0);
+  assert.equal(fixture.cancels,0);
+  const active=fixture.audio.transform('remi');await flush();t.mock.timers.tick(1200);
+  assert.equal(fixture.spoken.length,1);
+  fixture.audio.configure({languageFallback:true});
+  assert.equal((await active).reason,'cancelled');
+  assert.equal(fixture.cancels,1);
 });

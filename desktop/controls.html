@@ -6,8 +6,9 @@
 <section class="preferences" aria-label="등장 설정"><label class="toggle"><span><strong>가끔 자동으로 등장</strong><small>한 번 등장하면 약 20초 동안 머물러요.</small></span><input id="enabled" type="checkbox"></label>
 <div class="field-grid"><label>등장 빈도<select id="frequency"><option value="often">자주 · 30~60초</option><option value="normal">보통 · 1~3분</option><option value="quiet">가끔 · 3~6분</option></select></label><label>함께할 친구<select id="character"><option value="random">다섯 명 중 무작위</option><option value="remi">도레미</option><option value="hazuki">장메이</option><option value="aiko">유사랑</option><option value="onpu">진보라</option><option value="momoko">나모모</option></select></label></div>
 <label class="toggle"><span><strong>움직임 줄이기</strong><small>이동과 반짝임 없이 제자리에 등장해요.</small></span><input id="reducedMotion" type="checkbox"></label>
-<label class="toggle"><span><strong>마법 효과음과 변신 음성</strong><small>참고 영상 원음 7개 포함 · 미확보 조합은 효과음만 재생해요.</small></span><input id="sound" type="checkbox"></label>
+<label class="toggle"><span><strong>마법 효과음과 변신 음성</strong><small>참고 영상의 짧은 변신 원음 7개가 포함되어 있어요.</small></span><input id="sound" type="checkbox"></label>
 <div class="field-grid"><label>음성 언어<select id="language"><option value="ko">한국어</option><option value="ja">日本語</option></select></label><label>음량<input id="volume" type="range" min="0" max="1" step="0.05"></label></div>
+<label class="toggle"><span><strong>다른 언어 원음 허용</strong><small>선택한 언어가 없을 때 같은 캐릭터의 다른 언어 원음을 사용해요. 끄면 음성 없이 효과음만 재생해요.</small></span><input id="languageFallback" type="checkbox"></label>
 <p id="voice-status" class="note" role="status"></p><p class="note">음성은 참고 영상에서 가져온 짧은 변신 구간이에요. 원래 영상의 배경음·효과음이 함께 포함됩니다.</p></section>
 <footer><p id="status" role="status">설정을 불러오는 중…</p><p class="note">창을 닫아도 트레이에서 계속 실행돼요. 등장한 캐릭터는 클릭을 가리지 않아요. Windows 시작 시 자동으로 실행되지 않아요.</p><button id="quit" class="text-button">완전히 종료</button></footer>
 </main><script src="controls.js"></script></body></html>

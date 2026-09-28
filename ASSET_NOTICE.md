@@ -1,4 +1,4 @@
-# Artwork and third-party notices · 1.2.2
+# Artwork and third-party notices · 1.3.1
 
 The MIT license in LICENSE covers this project's original code and documentation. It does not grant rights to third-party characters, designs, names, trademarks, voice performances, music, or source recordings. This is an unofficial *Ojamajo Doremi* fan project.
 

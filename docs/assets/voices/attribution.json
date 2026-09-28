@@ -1,0 +1,101 @@
+{
+  "description": "User-supplied reference video excerpts. Original voices and background mix retained; no claim of isolated vocals or ownership of source material.",
+  "missingSlots": [
+    "momoko:ko",
+    "hazuki:ja",
+    "onpu:ja"
+  ],
+  "clips": [
+    {
+      "slot": "remi:ko",
+      "name": "참고 영상 원음 · 도레미 한국어 (10–13초)",
+      "origin": "reference-excerpt",
+      "sourceVideo": "https://www.youtube.com/watch?v=ulQqVjIT0-c",
+      "sourceStart": 10,
+      "sourceEnd": 13,
+      "duration": 3.0032,
+      "encoding": "MP3 · mono · 64 kbit/s",
+      "note": "사용자가 지정한 참고 영상의 짧은 변신 호출 구간. 원본 배경 음악·효과음이 함께 들리는 혼합 음원이며 분리 음성이나 복제 음성이 아닙니다.",
+      "bytes": 24493,
+      "sha256": "b8f6f48c28392c269767fe222978f715b4636d90c9212e9737b1b8ffb41f8ab5"
+    },
+    {
+      "slot": "aiko:ko",
+      "name": "참고 영상 원음 · 유사랑 한국어 (24–26초)",
+      "origin": "reference-excerpt",
+      "sourceVideo": "https://www.youtube.com/watch?v=ulQqVjIT0-c",
+      "sourceStart": 24,
+      "sourceEnd": 26,
+      "duration": 2.0063,
+      "encoding": "MP3 · mono · 64 kbit/s",
+      "note": "사용자가 지정한 참고 영상의 짧은 변신 호출 구간. 원본 배경 음악·효과음이 함께 들리는 혼합 음원이며 분리 음성이나 복제 음성이 아닙니다.",
+      "bytes": 16552,
+      "sha256": "108fb48c0587f140088e155787d0322fb8ea9d0e4882407a4c9359206f444552"
+    },
+    {
+      "slot": "hazuki:ko",
+      "name": "참고 영상 원음 · 장메이 한국어 (38–41초)",
+      "origin": "reference-excerpt",
+      "sourceVideo": "https://www.youtube.com/watch?v=ulQqVjIT0-c",
+      "sourceStart": 38,
+      "sourceEnd": 41,
+      "duration": 3.0064,
+      "encoding": "MP3 · mono · 64 kbit/s",
+      "note": "사용자가 지정한 참고 영상의 짧은 변신 호출 구간. 원본 배경 음악·효과음이 함께 들리는 혼합 음원이며 분리 음성이나 복제 음성이 아닙니다.",
+      "bytes": 24702,
+      "sha256": "066b94884a9b489d25059479f2b944511cc3870cbac7a3f6cd688720d5bc39ca"
+    },
+    {
+      "slot": "onpu:ko",
+      "name": "참고 영상 원음 · 진보라 한국어 (52–54초)",
+      "origin": "reference-excerpt",
+      "sourceVideo": "https://www.youtube.com/watch?v=ulQqVjIT0-c",
+      "sourceStart": 52,
+      "sourceEnd": 54,
+      "duration": 2.0096,
+      "encoding": "MP3 · mono · 64 kbit/s",
+      "note": "사용자가 지정한 참고 영상의 짧은 변신 호출 구간. 원본 배경 음악·효과음이 함께 들리는 혼합 음원이며 분리 음성이나 복제 음성이 아닙니다.",
+      "bytes": 16552,
+      "sha256": "dca43853ea540dd0b84a7688f9c03c63f79c98a4503eac495fdd00b42f65a926"
+    },
+    {
+      "slot": "remi:ja",
+      "name": "참고 영상 원음 · 도레미 일본어 (12–15초)",
+      "origin": "reference-excerpt",
+      "sourceVideo": "https://www.youtube.com/watch?v=Nd_sv-li7nY",
+      "sourceStart": 12,
+      "sourceEnd": 15,
+      "duration": 2.7447,
+      "encoding": "MP3 · mono · 64 kbit/s",
+      "note": "사용자가 지정한 참고 영상의 짧은 변신 호출 구간. 원본 배경 음악·효과음이 함께 들리는 혼합 음원이며 분리 음성이나 복제 음성이 아닙니다.",
+      "bytes": 22612,
+      "sha256": "77cbd57c5c21da7ef37f8375f1950804cf7382c72a1ba24e7b43c2a07999c93f"
+    },
+    {
+      "slot": "aiko:ja",
+      "name": "참고 영상 원음 · 유사랑 일본어 (12–15초)",
+      "origin": "reference-excerpt",
+      "sourceVideo": "https://www.youtube.com/watch?v=576vUL2A_2w",
+      "sourceStart": 12,
+      "sourceEnd": 15,
+      "duration": 2.8376,
+      "encoding": "MP3 · mono · 64 kbit/s",
+      "note": "사용자가 지정한 참고 영상의 짧은 변신 호출 구간. 원본 배경 음악·효과음이 함께 들리는 혼합 음원이며 분리 음성이나 복제 음성이 아닙니다.",
+      "bytes": 23239,
+      "sha256": "a993ec65a7af6d18b8ac1a8fe7ff092399daa769675827193d9b7197ac263ea7"
+    },
+    {
+      "slot": "momoko:ja",
+      "name": "참고 영상 원음 · 나모모 일본어 (11–14초)",
+      "origin": "reference-excerpt",
+      "sourceVideo": "https://www.youtube.com/watch?v=KdUtVDHts2g",
+      "sourceStart": 11,
+      "sourceEnd": 14,
+      "duration": 3.0016,
+      "encoding": "MP3 · mono · 64 kbit/s",
+      "note": "사용자가 지정한 참고 영상의 짧은 변신 호출 구간. 원본 배경 음악·효과음이 함께 들리는 혼합 음원이며 분리 음성이나 복제 음성이 아닙니다.",
+      "bytes": 24493,
+      "sha256": "4474c177e36664b63e8ca2bd4f4d145be89e404b09ede81627fb20727a0ae2a5"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createCaptureHandler, validCaptureSender } from '../src/background.js';
+import { createCaptureHandler, validCaptureSender, createSettingsHandler, validContentSender } from '../src/background.js';
 
 function event() {
   const listeners = new Set();
@@ -13,12 +13,12 @@ function event() {
 }
 
 function fixture() {
-  const source = { id: 'test-extension', frameId: 0, url: 'https://example.org/', tab: { id: 12, windowId: 4 } };
+  const source = { id: 'test-extension', frameId: 0, url: 'https://example.org/', tab: { id: 12, windowId: 4, url: 'https://example.org/' } };
   const state = { activeTab: { id: 12, url: source.url }, focused: true, captures: 0, downloads: [], session: {}, settings: {} };
   const api = {
     runtime: { id: source.id },
     storage: {
-      local: { get: async () => ({ remiSettings: state.settings }) },
+      local: { get: async () => ({ remiSettings: state.settings }), set: async patch => { state.settings = patch.remiSettings; } },
       session: { get: async () => ({ ...state.session }), set: async patch => Object.assign(state.session, patch) },
     },
     windows: { get: async () => ({ id: 4, focused: state.focused }), onFocusChanged: event() },
@@ -73,6 +73,7 @@ test('inactive tabs, unfocused windows, disabled settings, and pending navigatio
     state => { state.activeTab.pendingUrl = 'https://elsewhere.example/'; },
     state => { state.settings.captureOnTransform = false; },
     state => { state.settings.enabled = false; },
+    state => { state.settings.disabledSites = ['example.org']; },
   ];
   for (const vary of variations) {
     const { source, state, api } = fixture();
@@ -136,4 +137,96 @@ test('a canceled save returns a useful error and releases all listeners', async 
   assert.match(result.error, /취소/);
   assert.equal(api.tabs.onUpdated.size, 0);
   assert.equal(api.windows.onFocusChanged.size, 0);
+});
+
+test('site context uses the top tab for every frame and never trusts a requested site', async () => {
+  const { source, api } = fixture();
+  const handle = createSettingsHandler(api);
+  for (const frameId of [0, 3, 12]) {
+    const sender = { ...source, frameId, url: 'https://advertisement.example/frame' };
+    assert.deepEqual(await handle({ type: 'REMI_SITE_CONTEXT', site: 'forged.example' }, sender), { ok: true, site: 'example.org' });
+  }
+  assert.deepEqual(await handle({ type: 'REMI_SITE_CONTEXT' }, { ...source, tab: { ...source.tab, url: 'file:///page.html' } }), { ok: true, site: '' });
+});
+
+test('site lookup rejects unknown extensions, missing top URL, protected pages and inactive documents', async () => {
+  const { source, api } = fixture();
+  const handle = createSettingsHandler(api);
+  for (const patch of [
+    { id: 'untrusted' }, { frameId: -1 }, { tab: undefined },
+    { tab: { ...source.tab, url: undefined } }, { tab: { ...source.tab, url: 'chrome://settings' } },
+    { documentLifecycle: 'prerender' },
+  ]) {
+    assert.equal(validContentSender({ ...source, ...patch }, api.runtime.id), false);
+    assert.equal((await handle({ type: 'REMI_SITE_CONTEXT' }, { ...source, ...patch })).ok, false);
+  }
+});
+
+test('concurrent settings patches retain character, site preferences and the latest values', async () => {
+  const { source, state, api } = fixture();
+  state.settings = { character: 'aiko', size: 170, disabledSites: ['blocked.example'], trail: false };
+  const handle = createSettingsHandler(api);
+  const popup = { id: source.id, url: `chrome-extension://${source.id}/popup.html` };
+  const results = await Promise.all([
+    handle({ type: 'REMI_UPDATE_SETTINGS', patch: { size: 215 } }, popup),
+    handle({ type: 'REMI_UPDATE_SETTINGS', patch: { sound: false } }, { ...source, frameId: 9 }),
+    handle({ type: 'REMI_UPDATE_SETTINGS', patch: { mode: 'focus', spellVoice: false } }, popup),
+  ]);
+  assert.ok(results.every(result => result.ok));
+  assert.equal(state.settings.size, 215);
+  assert.equal(state.settings.sound, false);
+  assert.equal(state.settings.character, 'aiko');
+  assert.equal(state.settings.trail, false);
+  assert.equal(state.settings.mode, 'focus');
+  assert.equal(state.settings.spellVoice, false);
+  assert.deepEqual(state.settings.disabledSites, ['blocked.example']);
+});
+
+test('site toggle merges current exclusions, matches exact hosts and reset restores defaults', async () => {
+  const { source, state, api } = fixture();
+  state.settings = { size: 230, disabledSites: ['keep.example'] };
+  const handle = createSettingsHandler(api);
+  await Promise.all([
+    handle({ type: 'REMI_SET_SITE_ENABLED', site: 'https://ONE.example/a', enabled: false }, source),
+    handle({ type: 'REMI_SET_SITE_ENABLED', site: 'two.example', enabled: false }, source),
+  ]);
+  assert.deepEqual(state.settings.disabledSites, ['keep.example', 'one.example', 'two.example']);
+  await handle({ type: 'REMI_SET_SITE_ENABLED', site: 'one.example', enabled: true }, source);
+  assert.deepEqual(state.settings.disabledSites, ['keep.example', 'two.example']);
+  assert.equal(state.settings.size, 230);
+  await handle({ type: 'REMI_RESET_SETTINGS' }, source);
+  assert.deepEqual(state.settings.disabledSites, []);
+  assert.equal(state.settings.size, 160);
+});
+
+test('an own-extension demo tab can use settings APIs without opening page senders to them', async () => {
+  const { source, state, api } = fixture();
+  const handle = createSettingsHandler(api);
+  const demoUrl = `chrome-extension://${source.id}/demo.html`;
+  const demo = { ...source, url: demoUrl, tab: { ...source.tab, url: demoUrl } };
+  assert.equal((await handle({ type: 'REMI_UPDATE_SETTINGS', patch: { mode: 'focus' } }, demo)).ok, true);
+  assert.equal(state.settings.mode, 'focus');
+  for (const url of ['chrome-extension://other-extension/demo.html', `https://${source.id}/demo.html`]) {
+    assert.equal((await handle({ type: 'REMI_UPDATE_SETTINGS', patch: { sound: false } }, { ...demo, url })).ok, false);
+  }
+});
+
+test('settings service rejects malformed messages and recovers after a failed write', async () => {
+  const { source, state, api } = fixture();
+  const handle = createSettingsHandler(api);
+  for (const message of [
+    { type: 'REMI_UPDATE_SETTINGS', patch: null }, { type: 'REMI_UPDATE_SETTINGS', patch: [] },
+    { type: 'REMI_UPDATE_SETTINGS', patch: { arbitrary: 'no' } },
+    { type: 'REMI_UPDATE_SETTINGS', patch: { disabledSites: [] } },
+    { type: 'REMI_SET_SITE_ENABLED', site: 'chrome://settings', enabled: false },
+    { type: 'REMI_SET_SITE_ENABLED', site: 'valid.example', enabled: 'false' },
+  ]) assert.equal((await handle(message, source)).ok, false);
+  assert.equal((await handle({ type: 'REMI_UPDATE_SETTINGS', patch: { sound: false } }, { ...source, id: 'wrong' })).ok, false);
+  assert.equal(handle({ type: 'unrelated' }, source), null);
+  const normalSet = api.storage.local.set;
+  api.storage.local.set = async () => { throw new Error('quota'); };
+  assert.equal((await handle({ type: 'REMI_UPDATE_SETTINGS', patch: { sound: false } }, source)).ok, false);
+  api.storage.local.set = normalSet;
+  assert.equal((await handle({ type: 'REMI_UPDATE_SETTINGS', patch: { sound: false } }, source)).ok, true);
+  assert.equal(state.settings.sound, false);
 });

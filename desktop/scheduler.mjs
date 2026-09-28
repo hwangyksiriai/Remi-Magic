@@ -6,7 +6,7 @@ export const FREQUENCIES = Object.freeze({
 });
 export const DEFAULT_SETTINGS = Object.freeze({
   enabled: true, frequency: 'normal', character: 'random', language: 'ko',
-  reducedMotion: false, sound: false, volume: 0.4,
+  reducedMotion: false, sound: false, volume: 0.4, languageFallback: true,
 });
 
 export function validateSettings(input = {}) {
@@ -16,6 +16,7 @@ export function validateSettings(input = {}) {
     frequency: Object.hasOwn(FREQUENCIES, value.frequency) ? value.frequency : DEFAULT_SETTINGS.frequency,
     character: CHARACTER_IDS.includes(value.character) ? value.character : 'random',
     language: value.language === 'ja' ? 'ja' : 'ko',
+    languageFallback: typeof value.languageFallback === 'boolean' ? value.languageFallback : DEFAULT_SETTINGS.languageFallback,
     reducedMotion: value.reducedMotion === true,
     sound: value.sound === true,
     volume: Number.isFinite(value.volume) ? Math.min(1, Math.max(0, value.volume)) : DEFAULT_SETTINGS.volume,

@@ -1,3 +1,5 @@
+import { DEFAULTS, effectiveSettings, normalizeSettings, normalizeSite } from './settings.js';
+
 const CAPTURE_COOLDOWN = 3000;
 const CAPTURE_TIME_KEY = 'remiLastCaptureAt';
 
@@ -18,6 +20,59 @@ export function validCaptureSender(sender, extensionId) {
     supportedPage(sender.url) &&
     (!sender.documentLifecycle || sender.documentLifecycle === 'active')
   );
+}
+
+export function validContentSender(sender, extensionId) {
+  return Boolean(sender?.id === extensionId &&
+    Number.isInteger(sender.frameId) && sender.frameId >= 0 &&
+    Number.isInteger(sender.tab?.id) && sender.tab.id >= 0 &&
+    supportedPage(sender.tab.url) &&
+    (!sender.documentLifecycle || sender.documentLifecycle === 'active'));
+}
+
+function validSettingsSender(sender, extensionId) {
+  if (validContentSender(sender, extensionId)) return true;
+  return sender?.id === extensionId &&
+    typeof sender.url === 'string' && sender.url.startsWith(`chrome-extension://${extensionId}/`);
+}
+
+// One service-worker queue merges each change into the latest saved preferences.
+// A mute shortcut from a frame cannot overwrite a newer size or site preference.
+export function createSettingsHandler(api) {
+  let writeChain = Promise.resolve();
+  return function settingsMessage(message, sender) {
+    if (message?.type === 'REMI_SITE_CONTEXT') {
+      return Promise.resolve(validContentSender(sender, api.runtime.id)
+        ? { ok: true, site: normalizeSite(sender.tab.url) }
+        : { ok: false, error: '이 페이지에서는 마법 커서를 사용할 수 없어요.' });
+    }
+    if (!['REMI_UPDATE_SETTINGS', 'REMI_SET_SITE_ENABLED', 'REMI_RESET_SETTINGS'].includes(message?.type)) return null;
+    if (!validSettingsSender(sender, api.runtime.id)) return Promise.resolve({ ok: false, error: '설정을 변경할 수 없어요.' });
+    const patch = message.patch;
+    if (message.type === 'REMI_UPDATE_SETTINGS' && (!patch || typeof patch !== 'object' || Array.isArray(patch) ||
+      Object.keys(patch).some(key => !Object.hasOwn(DEFAULTS, key) || key === 'disabledSites'))) {
+      return Promise.resolve({ ok: false, error: '지원하지 않는 설정이에요.' });
+    }
+    const site = message.type === 'REMI_SET_SITE_ENABLED' ? normalizeSite(message.site) : '';
+    if (message.type === 'REMI_SET_SITE_ENABLED' && (!site || typeof message.enabled !== 'boolean')) {
+      return Promise.resolve({ ok: false, error: '이 사이트의 설정을 변경할 수 없어요.' });
+    }
+    const write = writeChain.catch(() => {}).then(async () => {
+      const stored = await api.storage.local.get('remiSettings');
+      const latest = normalizeSettings(stored.remiSettings);
+      let settings;
+      if (message.type === 'REMI_RESET_SETTINGS') settings = normalizeSettings();
+      else if (message.type === 'REMI_SET_SITE_ENABLED') settings = normalizeSettings({
+        ...latest, disabledSites: message.enabled ? latest.disabledSites.filter(item => item !== site)
+          : [...latest.disabledSites, site],
+      });
+      else settings = normalizeSettings({ ...latest, ...patch });
+      await api.storage.local.set({ remiSettings: settings });
+      return { ok: true, settings };
+    });
+    writeChain = write;
+    return write.catch(() => ({ ok: false, error: '저장하지 못했어요. 다시 시도해 주세요.' }));
+  };
 }
 
 function trackContext(api, tabId, windowId) {
@@ -69,7 +124,8 @@ export function createCaptureHandler(api, now = Date.now) {
         api.storage.local.get('remiSettings'),
         api.storage.session.get(CAPTURE_TIME_KEY),
       ]);
-      if (remiSettings?.enabled === false || remiSettings?.captureOnTransform === false) {
+      const settings = effectiveSettings(remiSettings, normalizeSite(sender.tab.url || sender.url));
+      if (!settings.enabled || !settings.captureOnTransform) {
         return { ok: false, error: '설정에서 변신 캡처를 켜 주세요.' };
       }
       const persisted = stored[CAPTURE_TIME_KEY];
@@ -113,9 +169,11 @@ export function createCaptureHandler(api, now = Date.now) {
 
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
   const capture = createCaptureHandler(chrome);
+  const settings = createSettingsHandler(chrome);
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message?.type !== 'REMI_CAPTURE') return false;
-    capture(message, sender).then(sendResponse);
+    const result = message?.type === 'REMI_CAPTURE' ? capture(message, sender) : settings(message, sender);
+    if (!result) return false;
+    result.then(sendResponse);
     return true;
   });
 }

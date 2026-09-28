@@ -49,6 +49,45 @@ test('beads stay inside the transparent chamber even after violent cursor moveme
   disposeModel(wand);
 });
 
+test('both bead chambers keep visibly moving after a minute with a stationary cursor', () => {
+  const wand = createWand();
+  for (let frame = 0; frame < 3600; frame++) updateWand(wand, { time: frame / 60, dt: 1 / 60 });
+  const beads = wand.userData.beads;
+  const starts = beads.map(bead => bead.mesh.position.clone());
+  const rotations = beads.map(bead => bead.mesh.rotation.y);
+  const travel = beads.map(() => 0);
+  const lowest = beads.map(bead => bead.mesh.position.y);
+  const highest = [...lowest];
+  for (let frame = 3600; frame < 3780; frame++) {
+    updateWand(wand, { time: frame / 60, dt: 1 / 60 });
+    beads.forEach((bead, index) => {
+      travel[index] = Math.max(travel[index], bead.mesh.position.distanceTo(starts[index]));
+      lowest[index] = Math.min(lowest[index], bead.mesh.position.y);
+      highest[index] = Math.max(highest[index], bead.mesh.position.y);
+    });
+  }
+  beads.forEach((bead, index) => {
+    const inGrip = Number.isFinite(bead.anchorY);
+    assert.ok(travel[index] > (inGrip ? .035 : .3), `${bead.mesh.name} must keep moving without pointer input`);
+    if (!inGrip) assert.ok(highest[index] - lowest[index] > .15, 'upper beads keep bouncing vertically');
+    assert.ok(bead.mesh.rotation.y - rotations[index] > 1, 'beads keep tumbling');
+  });
+  disposeModel(wand);
+});
+
+test('reduced motion lets beads settle and stops automatic bead rotation', () => {
+  const wand = createWand();
+  for (let frame = 0; frame < 600; frame++) updateWand(wand, { time: frame / 60, dt: 1 / 60 });
+  for (let frame = 600; frame < 2400; frame++) updateWand(wand, { time: frame / 60, dt: 1 / 60, reducedMotion: true });
+  const starts = wand.userData.beads.map(bead => ({ position: bead.mesh.position.clone(), rotation: bead.mesh.rotation.clone() }));
+  for (let frame = 2400; frame < 2520; frame++) updateWand(wand, { time: frame / 60, dt: 1 / 60, reducedMotion: true });
+  wand.userData.beads.forEach((bead, index) => {
+    assert.ok(bead.mesh.position.distanceTo(starts[index].position) < .005, 'reduced motion must not continually drive beads');
+    assert.ok(bead.mesh.rotation.equals(starts[index].rotation));
+  });
+  disposeModel(wand);
+});
+
 test('Rhythm Tap cycles a subtle idle highlight without changing jewel size', () => {
   const tap = createRhythmTap();
   assert.equal(tap.userData.gems.length, 7);

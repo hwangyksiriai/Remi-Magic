@@ -1,6 +1,6 @@
 import { CHARACTER_IDS, getCharacter, drawCharacter, preloadCharacterAssets } from '../src/characters.js';
 import { MagicAudio } from '../src/audio.js';
-import { sampleTransformation, drawRhythmTap2D } from '../src/transformation.js';
+import { sampleTransformation } from '../src/transformation.js';
 import { scenePose } from './scheduler.mjs';
 
 const canvas = document.querySelector('#stage');
@@ -82,9 +82,6 @@ function paint(time) {
       context.fillRect(state.x - 190 * state.scale, centerY - 190 * state.scale, 380 * state.scale, 380 * state.scale);
       context.restore();
     }
-    if (active.mode === 'transform' && transformation.tapVisible) {
-      drawRhythmTap2D(context, { x: state.x, y: state.y - 208 * state.scale, size: 70 * state.scale, time: seconds, charge: transformation.tapProgress, reducedMotion });
-    }
     context.restore();
     if (!reducedMotion && (spell || transforming)) {
       for (let sparkle = 0; sparkle < 9; sparkle++) {
@@ -126,7 +123,7 @@ window.companion.onScene(async (scene) => {
   }
   if (active?.id !== scene.id) return;
   startTime = performance.now();
-  audio.configure({ sound: scene.settings.sound, volume: scene.settings.volume * 0.5, language: scene.settings.language, voiceFallback: false });
+  audio.configure({ sound: scene.settings.sound, volume: scene.settings.volume * 0.5, language: scene.settings.language, languageFallback: scene.settings.languageFallback, voiceFallback: false });
   frame = requestAnimationFrame(paint);
   if (scene.settings.sound && ['group', 'transform'].includes(scene.mode)) {
     await audio.unlock();

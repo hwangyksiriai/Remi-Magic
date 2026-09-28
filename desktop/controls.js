@@ -1,7 +1,8 @@
 import { CHARACTER_IDS, getCharacter, drawCharacter, preloadCharacterAssets } from '../src/characters.js';
-import { BUNDLED_VOICES, getBundledClip } from '../src/bundled-voices.js';
+import { BUNDLED_VOICES } from '../src/bundled-voices.js';
+import { resolveVoiceClip } from '../src/audio.js';
 
-const fields = ['enabled', 'frequency', 'character', 'reducedMotion', 'sound', 'language', 'volume'];
+const fields = ['enabled', 'frequency', 'character', 'reducedMotion', 'sound', 'language', 'languageFallback', 'volume'];
 const status = document.querySelector('#status');
 const voiceStatus = document.querySelector('#voice-status');
 let settings;
@@ -23,20 +24,31 @@ function updateVoiceStatus() {
   if (!settings) return;
   const language = settings.language === 'ja' ? 'ja' : 'ko';
   const languageName = language === 'ja' ? '일본어' : '한국어';
+  const recordingOptions = { languageFallback: settings.languageFallback };
   const quiet = settings.sound ? '' : '소리 꺼짐 · ';
   if (settings.character === 'random') {
     const keys = Object.keys(BUNDLED_VOICES);
     const korean = keys.filter(key => key.endsWith(':ko')).length;
     const japanese = keys.filter(key => key.endsWith(':ja')).length;
     const available = language === 'ja' ? japanese : korean;
-    voiceStatus.textContent = `${quiet}원본 발췌 ${keys.length}개 포함(한국어 ${korean} · 일본어 ${japanese}). 현재 ${languageName} ${available}/5명 · 미확보 조합은 효과음만 재생해요.`;
+    const fallbacks = CHARACTER_IDS.flatMap(id => {
+      const recording = resolveVoiceClip(BUNDLED_VOICES, id, language, recordingOptions);
+      return recording?.languageFallback ? [`${getCharacter(id).name}(${recording.language === 'ja' ? '일본어' : '한국어'})`] : [];
+    });
+    const missing = CHARACTER_IDS.filter(id => !resolveVoiceClip(BUNDLED_VOICES, id, language, recordingOptions)).map(id => getCharacter(id).name);
+    const fallbackNote = fallbacks.length ? ` ${fallbacks.join(', ')}는 같은 캐릭터의 다른 언어 원음을 사용해요.` : '';
+    const missingNote = missing.length ? ` ${missing.join(', ')}는 ${languageName} 원음이 없어 소리를 켜면 효과음만 재생해요.` : '';
+    voiceStatus.textContent = `${quiet}원본 발췌 ${keys.length}개 포함(한국어 ${korean} · 일본어 ${japanese}). 현재 ${languageName} ${available}/5명.${fallbackNote}${missingNote}`;
     return;
   }
   const selected = getCharacter(settings.character);
-  const clip = getBundledClip(`${selected.id}:${language}`);
-  voiceStatus.textContent = clip
-    ? `${quiet}${selected.name} · ${languageName} 참고 영상 원음 발췌를 사용해요.`
-    : `${quiet}${selected.name} · ${languageName} 원음 미확보. 소리를 켜면 효과음만 재생해요.`;
+  const recording = resolveVoiceClip(BUNDLED_VOICES, selected.id, language, recordingOptions);
+  const actualLanguageName = recording?.language === 'ja' ? '일본어' : '한국어';
+  voiceStatus.textContent = recording?.languageFallback
+    ? `${quiet}${selected.name}의 ${languageName} 원음이 없어 같은 캐릭터의 ${actualLanguageName} 참고 영상 원음 발췌를 사용해요.`
+    : recording
+      ? `${quiet}${selected.name} · ${languageName} 참고 영상 원음 발췌를 사용해요.`
+      : `${quiet}${selected.name} · ${languageName} 원음 없음${settings.languageFallback ? '' : ' · 다른 언어 자동 대체 꺼짐'}. 소리를 켜면 효과음만 재생해요.`;
 }
 
 for (const name of fields) document.getElementById(name).addEventListener('change', async (event) => {

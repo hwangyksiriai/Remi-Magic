@@ -5,10 +5,14 @@ export const MAX_CLIP_BYTES = 700 * 1024;
 export const MAX_CLIP_SECONDS = 15;
 export const MIN_TRANSFORM_SECONDS = 10;
 export const VOICE_DELAY_SECONDS = 1.2;
-export const REFERENCE_VOICE_DELAY_SECONDS = 7;
+// Start the spoken spell with the transformation, before the first costume
+// change. Waiting for the final reveal made the opening sound voice-less.
+export const REFERENCE_VOICE_DELAY_SECONDS = VOICE_DELAY_SECONDS;
 const SPEECH_TIMEOUT_MS = 20000;
 const CHARACTERS = Object.keys(VOICE_PROFILES);
 const CLIP_KEYS = ['click', 'scroll', 'transform', ...CHARACTERS.flatMap(id => [`${id}:ko`, `${id}:ja`])];
+const CHANNELS = ['clickSound', 'scrollSound', 'spellVoice', 'transformSound'];
+const clipChannel = key => ({ click: 'clickSound', scroll: 'scrollSound', transform: 'transformSound' })[key] || 'spellVoice';
 
 /** Synchronous UI copy; an imported file is never assumed to be an original recording. */
 export function describeVoiceStatus(status, locale = 'ko') {
@@ -16,6 +20,7 @@ export function describeVoiceStatus(status, locale = 'ko') {
   const language = status?.language === 'ja' ? (japanese ? '日本語' : '일본어') : (japanese ? '韓国語' : '한국어');
   const reason = status?.reason;
   if (reason === 'cancelled' || status?.source === 'muted') return japanese ? '音声は停止しています。' : '음성이 꺼져 있어요.';
+  if (reason === 'language-fallback-disabled') return japanese ? `${language}の録音なし・別言語への自動切替はオフ` : `${language} 녹음 없음 · 다른 언어 자동 대체 꺼짐`;
   if (reason === 'fallback-disabled') return japanese ? `${language}の登録音声なし・システム試聴はオフ` : `${language} 녹음 없음 · 시스템 시연 음성 꺼짐`;
   if (reason === 'language-voice-unavailable') return japanese ? `${language}のシステム音声がありません。録音を登録してください。` : `${language} 시스템 음성이 없어요. 해당 언어의 음성을 설치하거나 녹음을 등록해 주세요.`;
   if (reason === 'speech-busy') return japanese ? 'ほかの音声が再生中のため、今回の試聴を省略しました。' : '다른 음성이 재생 중이라 이번 시연 음성을 건너뛰었어요.';
@@ -25,6 +30,11 @@ export function describeVoiceStatus(status, locale = 'ko') {
   if (reason === 'speech-timeout' || reason === 'clip-timeout') return japanese ? '音声の終了を確認できなかったため、再生を停止しました。' : '음성 종료를 확인하지 못해 재생을 중단했어요.';
   if (reason) return japanese ? '音声を再生できませんでした。録音とブラウザーの設定を確認してください。' : '음성을 재생하지 못했어요. 등록 파일과 브라우저 소리 설정을 확인해 주세요.';
   if (status?.source === 'recording') {
+    if (status.languageFallback) {
+      const requested = status.requestedLanguage === 'ja' ? (japanese ? '日本語' : '일본어') : (japanese ? '韓国語' : '한국어');
+      const kind = status.origin === 'reference-excerpt' ? (japanese ? '参考動画の原音' : '참고 영상 원음') : (japanese ? '登録音声' : '등록 음성');
+      return japanese ? `${requested}の録音がないため、このキャラクターの${language}の${kind}を使用` : `${requested} 녹음이 없어 같은 캐릭터의 ${language} ${kind} 사용`;
+    }
     if (status.origin === 'reference-excerpt') return japanese ? `${language}の参考動画の原音 · 背景音を含みます` : `${language} 참고 영상 원음 · 배경음 포함`;
     return japanese ? `${language}の登録音声を使用` : `${language} 등록 음성 사용`;
   }
@@ -45,13 +55,35 @@ function normalizeClips(clips) {
   return normalized;
 }
 
+/** Prefer the requested language; optionally use only the same character's alternate. */
+export function resolveVoiceClip(clips, character = 'remi', requestedLanguage = 'ko', { languageFallback = true } = {}) {
+  const requested = requestedLanguage === 'ja' ? 'ja' : 'ko';
+  if (!CHARACTERS.includes(character)) return null;
+  const languages = languageFallback ? [requested, requested === 'ko' ? 'ja' : 'ko'] : [requested];
+  for (const language of languages) {
+    const key = `${character}:${language}`;
+    let clip = clips?.[key];
+    // Also support raw stored imports merged with built-ins by the settings UI.
+    // An explicit user-language slot still takes precedence over a legacy alias.
+    const legacy = language === 'ko' ? clips?.[character] : null;
+    if (legacy?.data && (!clip?.data || clip.origin === 'reference-excerpt')) clip = legacy;
+    if (clip?.data) return { key, clip, requestedLanguage: requested, language, languageFallback: language !== requested };
+  }
+  return null;
+}
+
 export class MagicAudio {
   constructor({ bundledClips = BUNDLED_VOICES } = {}) {
     this.sound = true;
+    for (const channel of CHANNELS) this[channel] = true;
     this.volume = .22;
     this.language = 'ko';
     this.voiceFallback = false;
+    this.languageFallback = true;
     this.nodes = new Set();
+    this.nodeChannels = new Map();
+    this.nodeCleanups = new Map();
+    this.channelRevisions = Object.fromEntries(CHANNELS.map(channel => [channel, 0]));
     this.clipFinishes = new Map();
     this.speechJobs = new Set();
     this.lastScroll = -Infinity;
@@ -65,13 +97,20 @@ export class MagicAudio {
     this.disposed = false;
   }
 
-  configure({ sound = this.sound, volume = this.volume, language = this.language, voiceFallback = this.voiceFallback } = {}) {
+  configure({ sound = this.sound, volume = this.volume, language = this.language, voiceFallback = this.voiceFallback, languageFallback = this.languageFallback, ...channels } = {}) {
     const nextLanguage = language === 'ja' ? 'ja' : 'ko';
-    if (!sound || nextLanguage !== this.language || (!voiceFallback && this.voiceFallback)) this.stop();
+    const nextLanguageFallback = typeof languageFallback === 'boolean' ? languageFallback : this.languageFallback;
+    if (!sound || nextLanguage !== this.language || (!voiceFallback && this.voiceFallback) || nextLanguageFallback !== this.languageFallback) this.stop();
     this.sound = Boolean(sound);
     this.volume = Number.isFinite(Number(volume)) ? Math.max(0, Math.min(.5, Number(volume))) : .22;
     this.language = nextLanguage;
     this.voiceFallback = Boolean(voiceFallback);
+    this.languageFallback = nextLanguageFallback;
+    for (const channel of CHANNELS) {
+      if (typeof channels[channel] !== 'boolean') continue;
+      if (this[channel] && !channels[channel]) this.stopChannel(channel);
+      this[channel] = channels[channel];
+    }
     if (this.master) this.master.gain.value = this.volume;
     if (this.activeSpeech) this.activeSpeech.utterance.volume = this.volume;
   }
@@ -80,7 +119,7 @@ export class MagicAudio {
     if (!this.sound || this.disposed) return;
     try {
       // Trigger asynchronous OS voice discovery before the delayed phrase begins.
-      if (this.voiceFallback) globalThis.window?.speechSynthesis?.getVoices();
+      if (this.spellVoice && this.voiceFallback) globalThis.window?.speechSynthesis?.getVoices();
       if (!this.ctx) {
         const Audio = globalThis.window?.AudioContext || globalThis.window?.webkitAudioContext;
         if (!Audio) return;
@@ -90,7 +129,9 @@ export class MagicAudio {
         this.master.connect(this.ctx.destination);
         this.setClips(this.userClipData);
       }
-      const resume = this.ctx.resume?.();
+      // The pointer gesture already unlocks this context before image loading.
+      // Do not issue another resume after that asynchronous loading boundary.
+      const resume = this.ctx.state === 'running' ? null : this.ctx.resume?.();
       if (resume?.catch) {
         // Some browsers leave resume pending until a later gesture. Report the
         // unavailable recording instead of hanging the capture indefinitely.
@@ -126,9 +167,9 @@ export class MagicAudio {
     return this.clipsReady;
   }
 
-  startClip(key, delay = 0) {
+  startClip(key, delay = 0, channel = clipChannel(key)) {
     const buffer = this.buffers[key];
-    if (!buffer || !this.sound || this.disposed || this.ctx?.state !== 'running') return null;
+    if (!buffer || !this.sound || !this[channel] || this.disposed || this.ctx?.state !== 'running') return null;
     const source = this.ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(this.master);
@@ -140,6 +181,7 @@ export class MagicAudio {
       settled = true;
       clearTimeout(timeout);
       this.nodes.delete(source);
+      this.nodeChannels.delete(source);
       this.clipFinishes.delete(source);
       try { source.disconnect(); } catch {}
       finish(reason);
@@ -149,6 +191,7 @@ export class MagicAudio {
       try { source.stop(); } catch {}
     }, (delay + buffer.duration + 2) * 1000);
     this.nodes.add(source);
+    this.nodeChannels.set(source, channel);
     this.clipFinishes.set(source, settle);
     source.onended = () => settle(null);
     try { source.start(this.ctx.currentTime + delay); }
@@ -159,23 +202,30 @@ export class MagicAudio {
   playClip(key, delay = 0) { return Boolean(this.startClip(key, delay)); }
 
   voiceDelay(character = 'remi') {
-    return this.clipData[`${character}:${this.language}`]?.origin === 'reference-excerpt'
+    return resolveVoiceClip(this.clipData, character, this.language, this)?.clip.origin === 'reference-excerpt'
       ? REFERENCE_VOICE_DELAY_SECONDS : VOICE_DELAY_SECONDS;
   }
 
   duration(character = 'remi') {
-    return Math.max(MIN_TRANSFORM_SECONDS, (this.buffers[`${character}:${this.language}`]?.duration || 0) + this.voiceDelay(character),
-      this.buffers.transform?.duration || 0);
+    const recording = resolveVoiceClip(this.clipData, character, this.language, this);
+    return Math.max(MIN_TRANSFORM_SECONDS, this.sound && this.spellVoice ? (this.buffers[recording?.key || `${character}:${this.language}`]?.duration || 0) + this.voiceDelay(character) : 0,
+      this.sound && this.transformSound ? this.buffers.transform?.duration || 0 : 0);
   }
 
   getVoiceStatus(character = 'remi') {
     const language = this.language;
     if (!this.sound || this.disposed) return { source: 'muted', reason: this.disposed ? 'disposed' : 'sound-disabled', language };
-    if (this.buffers[`${character}:${language}`]) {
-      const clip = this.clipData[`${character}:${language}`];
-      return { source: 'recording', reason: null, language, ...(clip ? { origin: clip.origin, name: clip.name, sourceVideo: clip.sourceVideo, sourceStart: clip.sourceStart, sourceEnd: clip.sourceEnd } : {}) };
+    if (!this.spellVoice) return { source: 'muted', reason: 'voice-disabled', language };
+    const recording = resolveVoiceClip(this.clipData, character, language, this);
+    if (this.buffers[recording?.key || `${character}:${language}`]) {
+      const clip = recording?.clip;
+      return { source: 'recording', reason: null, language: recording?.language || language, requestedLanguage: language, languageFallback: recording?.languageFallback || false, ...(clip ? { origin: clip.origin, name: clip.name, sourceVideo: clip.sourceVideo, sourceStart: clip.sourceStart, sourceEnd: clip.sourceEnd } : {}) };
     }
-    if (!this.voiceFallback) return { source: 'unavailable', reason: 'fallback-disabled', language };
+    if (!this.voiceFallback) {
+      const alternate = !this.languageFallback && resolveVoiceClip(this.clipData, character, language);
+      if (alternate?.languageFallback) return { source: 'unavailable', reason: 'language-fallback-disabled', language, requestedLanguage: language, availableLanguage: alternate.language };
+      return { source: 'unavailable', reason: 'fallback-disabled', language };
+    }
     const synthesis = globalThis.window?.speechSynthesis;
     if (!synthesis || !globalThis.window?.SpeechSynthesisUtterance) return { source: 'unavailable', reason: 'speech-api-unavailable', language };
     const voice = selectVoice(synthesis, language, character);
@@ -184,8 +234,9 @@ export class MagicAudio {
   }
 
   getVoiceStatusText(character = 'remi', locale = 'ko') {
-    if (this.sound && !this.disposed && !this.ctx && this.clipData[`${character}:${this.language}`]?.data) {
-      return describeVoiceStatus({ source: 'recording', reason: 'recording-loading', language: this.language }, locale);
+    const recording = resolveVoiceClip(this.clipData, character, this.language, this);
+    if (this.sound && this.spellVoice && !this.disposed && !this.ctx && recording) {
+      return describeVoiceStatus({ source: 'recording', reason: 'recording-loading', language: recording.language }, locale);
     }
     return describeVoiceStatus(this.getVoiceStatus(character), locale);
   }
@@ -255,8 +306,8 @@ export class MagicAudio {
     try { globalThis.window?.speechSynthesis?.cancel(); } catch {}
   }
 
-  tone(frequency, delay = 0, length = .65, gain = .25) {
-    if (!this.sound || this.disposed || this.ctx?.state !== 'running') return;
+  tone(frequency, delay = 0, length = .65, gain = .25, channel = 'transformSound') {
+    if (!this.sound || !this[channel] || this.disposed || this.ctx?.state !== 'running') return;
     const start = this.ctx.currentTime + delay;
     for (const [multiple, level] of [[1, 1], [2, .2], [3, .055]]) {
       const osc = this.ctx.createOscillator(), env = this.ctx.createGain();
@@ -267,34 +318,48 @@ export class MagicAudio {
       osc.connect(env); env.connect(this.master);
       osc.start(start); osc.stop(start + length + .02);
       this.nodes.add(osc);
-      osc.onended = () => { this.nodes.delete(osc); osc.disconnect(); env.disconnect(); };
+      this.nodeChannels.set(osc, channel);
+      const cleanup = () => {
+        this.nodes.delete(osc); this.nodeChannels.delete(osc); this.nodeCleanups.delete(osc);
+        try { osc.disconnect(); env.disconnect(); } catch {}
+      };
+      this.nodeCleanups.set(osc, cleanup);
+      osc.onended = cleanup;
     }
   }
 
   scroll(direction) {
-    if (!this.sound || this.disposed || this.ctx?.state !== 'running') return;
+    if (!this.sound || !this.scrollSound || this.disposed || this.ctx?.state !== 'running') return;
     const now = performance.now();
     if (now - this.lastScroll < Math.max(140, (this.buffers.scroll?.duration || 0) * 1000)) return;
     this.lastScroll = now;
     if (this.playClip('scroll')) return;
     const notes = direction > 0 ? [1046.5, 1318.5, 1568] : [1568, 1318.5, 1046.5];
-    notes.forEach((f, i) => this.tone(f, i * .045, .38, .15));
+    notes.forEach((f, i) => this.tone(f, i * .045, .38, .15, 'scrollSound'));
   }
 
   async transform(character = 'remi') {
     const revision = this.playbackRevision;
     const language = this.language;
+    const voiceRevision = this.channelRevisions.spellVoice;
+    const effectRevision = this.channelRevisions.transformSound;
     await this.unlock();
     if (revision !== this.playbackRevision || !this.sound || this.disposed) return { source: 'muted', reason: 'cancelled', language };
-    const voice = this.startClip(`${character}:${language}`, this.voiceDelay(character));
+    const recording = resolveVoiceClip(this.clipData, character, language, this);
+    const key = recording?.key || `${character}:${language}`;
+    const voiceEnabled = this.spellVoice && voiceRevision === this.channelRevisions.spellVoice;
+    const effectEnabled = this.transformSound && effectRevision === this.channelRevisions.transformSound;
+    const voice = voiceEnabled ? this.startClip(key, this.voiceDelay(character)) : null;
     const recordingStatus = voice ? this.getVoiceStatus(character) : null;
-    const voiceDone = voice
-      ? voice.finished.then(reason => ({ ...recordingStatus, reason }))
-      : this.buffers[`${character}:${language}`]
-        ? Promise.resolve({ source: 'unavailable', reason: this.ctx?.state === 'running' ? 'clip-start-failed' : 'audio-context-unavailable', language })
+    const voiceDone = !voiceEnabled
+      ? Promise.resolve({ source: 'muted', reason: 'voice-disabled', language })
+      : voice
+      ? voice.finished.then(reason => reason === 'voice-disabled' ? { source: 'muted', reason, language } : ({ ...recordingStatus, reason }))
+      : this.buffers[key]
+        ? Promise.resolve({ source: 'unavailable', reason: this.ctx?.state === 'running' ? 'clip-start-failed' : 'audio-context-unavailable', language: recording?.language || language, requestedLanguage: language, languageFallback: recording?.languageFallback || false })
       : this.scheduleSpeech(character, revision, language);
-    const effect = this.startClip('transform');
-    if (!effect) {
+    const effect = effectEnabled ? this.startClip('transform') : null;
+    if (effectEnabled && !effect) {
       [523.25, 659.25, 783.99, 1046.5, 987.77, 1174.66, 1318.5, 1568, 1318.5, 1760, 2093]
         .forEach((f, i) => this.tone(f, i * .245, .9, .21));
       [523.25, 659.25, 783.99].forEach(f => this.tone(f, 2.95, 1.2, .12));
@@ -304,21 +369,42 @@ export class MagicAudio {
     return status;
   }
 
-  capture() { [1046.5, 1318.5, 2093].forEach((f, i) => this.tone(f, i * .08, .75, .18)); }
-  click() { if (this.playClip('click')) return; [1318.5, 1760, 2093].forEach((f, i) => this.tone(f, i * .055, .45, .16)); }
+  capture() { if (!this.transformSound) return; [1046.5, 1318.5, 2093].forEach((f, i) => this.tone(f, i * .08, .75, .18)); }
+  click() { if (!this.clickSound) return; if (this.playClip('click')) return; [1318.5, 1760, 2093].forEach((f, i) => this.tone(f, i * .055, .45, .16, 'clickSound')); }
+
+  stopChannel(channel) {
+    if (!CHANNELS.includes(channel)) return;
+    ++this.channelRevisions[channel];
+    const reason = channel === 'spellVoice' ? 'voice-disabled' : 'channel-disabled';
+    if (channel === 'spellVoice') {
+      this.cancelOwnedSpeech();
+      for (const job of [...this.speechJobs]) job.finish({ source: 'muted', reason, language: this.language });
+    }
+    for (const node of [...this.nodes]) {
+      if (this.nodeChannels.get(node) !== channel) continue;
+      this.clipFinishes.get(node)?.(reason);
+      try { node.stop(); } catch {}
+      this.nodeCleanups.get(node)?.();
+      try { node.disconnect(); } catch {}
+      this.nodes.delete(node); this.nodeChannels.delete(node);
+    }
+  }
 
   stop() {
     ++this.playbackRevision;
     this.cancelOwnedSpeech();
     for (const job of [...this.speechJobs]) job.finish({ source: 'muted', reason: 'cancelled', language: this.language });
-    for (const node of this.nodes) {
+    for (const node of [...this.nodes]) {
       // Settle before stop; some implementations dispatch onended immediately.
       this.clipFinishes.get(node)?.('cancelled');
       try { node.stop(); } catch {}
+      this.nodeCleanups.get(node)?.();
       try { node.disconnect(); } catch {}
     }
     this.nodes.clear();
     this.clipFinishes.clear();
+    this.nodeChannels.clear();
+    this.nodeCleanups.clear();
   }
 
   dispose() {

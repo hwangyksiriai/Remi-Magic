@@ -27,7 +27,7 @@ export function createShowcase(canvas) {
     const half=11.3*Math.tan(T.MathUtils.degToRad(16))*aspect,fit=Math.min(1,aspect/1.3);
     wand.position.set(-half*.40,.08,.04);wand.rotation.set(.10-pointer.y*.06,-.24+pointer.x*.12+Math.sin(time*.3)*.05,.30);wand.scale.setScalar(1.035*fit);
     tap.position.set(half*.43,.05,.10);tap.rotation.set(.32-pointer.y*.10,.46+pointer.x*.14+Math.sin(time*.3)*.055,-.12);tap.scale.setScalar(1.10*fit);
-    if(!reduced.matches)updateWand(wand,{time,dx:Math.sin(time*.5)*1.2,dy:Math.cos(time)*.15,dt});updateRhythmTap(tap,time);
+    if(!reduced.matches)updateWand(wand,{time,dx:Math.sin(time*.5)*1.2,dy:Math.cos(time)*.15,dt,reducedMotion:reduced.matches});updateRhythmTap(tap,time);
     renderer.render(scene,camera);raf=requestAnimationFrame(draw);
   }
   function wake(){if(!stopped&&!document.hidden&&visible&&!raf){previous=performance.now();raf=requestAnimationFrame(draw);}}

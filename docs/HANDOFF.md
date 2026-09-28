@@ -1,61 +1,73 @@
-# 다른 컴퓨터에서 이어서 작업하기
+# 이어서 작업하기
 
-저장소: https://github.com/hwangyksiriai/Remi-Magic
+저장소: [hwangyksiriai/Remi-Magic](https://github.com/hwangyksiriai/Remi-Magic)
 
-## 개발 환경 준비
+2026-09-28 변경 버전 **1.3.1**. 사용자 제공 원본 PNG 10장을 바이트 변경 없이 보관하며 변신 후 그림 4개의 흰 배경은 별도 파일에서 제거한 기존 자료를 유지합니다. 원본 발췌 음성 7개도 유지합니다. `npm run build:pages`로 docs/를 준비할 수 있으며 GitHub 게시·Pages 재배포는 별도입니다.
 
-Node.js 18 이상과 Git이 필요합니다. Windows와 macOS에서 아래 명령을 사용합니다.
+## Windows 요술봉 간편 적용
 
-```sh
-git clone https://github.com/hwangyksiriai/Remi-Magic.git
-cd Remi-Magic
-npm ci
-npm run check
-npm run dev
-```
+사용자의 쉬운 설치 요청에 따라 `Remi-Magic-Setup.exe` 하나로 적용·복구하는 Windows 앱을 추가했습니다. Node.js와 압축 해제 없이 실행합니다. 일반 선택/링크 선택만 바꾸며 처음 원래 설정을 보관합니다. Windows에서 `npm run build`는 native EXE도 먼저 컴파일하고, `dist/downloads`와 확장 ZIP에 포함합니다. 소스 ZIP에는 C# 코드와 원본 ANI만 넣고 EXE는 제외합니다. 실제 사용자의 시스템 커서는 개발 중 자동으로 바꾸지 않습니다. 앱 로직은 격리된 자체 테스트로, 실제 커서 데이터는 Windows 로더로 확인합니다. 기존 커서 ZIP을 기본 다운로드로 제공하고 EXE는 선택 사항으로 남깁니다. 사용자 요청으로 Windows 일반/링크 커서에 기존 ANI를 적용하고 원본 설정 백업·해시·새로고침을 확인했습니다.
 
-브라우저에서 `http://127.0.0.1:4173`을 엽니다. `npm run dev`는 `dist`를 제공하므로 소스를 수정한 뒤에는 `npm run build`를 실행하고 체험 페이지를 새로고침합니다.
+## 준비
 
-Git 없이 작업하려면 [소스 ZIP](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-source.zip)을 풀고 프로젝트 폴더에서 `npm ci`부터 실행하세요.
+2026-09-28 후속 수정: 원음 진입 1.2초, 같은 캐릭터의 다른 언어 녹음 대체와 실제 언어 안내, 정지 커서의 지속 구슬 운동을 유지합니다. 사용자가 부위별 변신 연출을 거절하고 되돌리기를 요청하여, 변신 전·후 그림 전체를 주문과 빛으로 이어주는 기존 약 10초 연출로 복구했습니다. 변신 중 리듬탭과 단계 안내 글씨는 표시하지 않습니다. 스크롤에는 기존 꽃잎 리듬탭을 사용합니다. 공개 배포는 master의 docs/를 사용하는 GitHub Pages로 진행합니다.
 
-## 확장 프로그램만 설치
+Node.js 22.12 이상에서 npm ci → npm run check. 체험은 npm run dev, 바탕화면 앱은 npm run desktop 또는 **바탕화면 마법사 실행.cmd**. 확장은 dist를 로드하고 업데이트 후 확장과 웹페이지를 새로고침합니다.
 
-[설치 ZIP](https://github.com/hwangyksiriai/Remi-Magic/releases/latest/download/remi-magic-extension.zip)을 풀고 Chrome의 `chrome://extensions` 또는 Edge의 `edge://extensions`에서 개발자 모드를 켭니다. **압축해제된 확장 프로그램 로드**로 `manifest.json`이 들어 있는 폴더를 선택합니다. 설치에 Node.js는 필요하지 않습니다.
+## 브라우저 일상 사용 개선
 
-직접 빌드했다면 같은 방법으로 프로젝트의 `dist` 폴더를 선택합니다. 확장 프로그램 코드를 수정한 뒤에는 빌드 → 확장 프로그램 관리에서 새로고침 → 사용 중인 웹페이지 새로고침 순으로 적용합니다.
+사용자가 승인한 1·2번 개선은 브라우저 체험과 확장에 적용합니다. 요술봉 끝에 실제 클릭점을 표시하고 글자·링크·크기 조절 상태를 붙입니다. 설정의 글씨·대비와 켜짐·꺼짐 안내를 개선합니다. Electron 바탕화면 앱의 설정 화면을 변경한 것으로 안내하지 않습니다.
 
-## 현재 구현
+`src/settings.js`의 저장 값은 `mode: 'magic' | 'focus'`, `clickSound`, `scrollSound`, `spellVoice`, `transformSound`, `holdToTransform`, `disabledSites`를 포함합니다. `effectiveSettings`가 집중 모드에서 소리·궤적·길게 누르기만 일시적으로 끄므로 저장한 마법 모드 설정을 덮어쓰지 않습니다. 요술봉과 자동 구슬 운동은 유지하며 수동 변신 버튼은 사용할 수 있습니다. 캡처는 `captureOnTransform`으로 따로 제어합니다.
 
-- 160px 기본 크기의 Three.js 요술봉, 7색 14개 구슬의 움직임
-- 마우스 이동 궤적·음표·별, 짧은 클릭 효과음
-- 스크롤 방향에 따른 꽃잎 리듬탭 회전
-- 길게 누르기 → 리듬탭 → 레미·사랑이·메이 원화 연출
-- 확장 프로그램의 현재 탭 PNG 캡처, 체험 페이지의 캐릭터 카드 저장
-- 캐릭터별 주문과 공통 효과음 파일을 브라우저에 넣는 기능
-- Windows 실제 마우스 포인터용 ANI/CUR 6종 (크기 128/64px), `desktop-cursors/`의 설명서 참고
+소리는 네 채널의 켜기·끄기와 전체 소리·공통 음량을 함께 적용합니다. 채널을 끄면 그 채널의 예정된 소리와 재생 중 소리만 중지합니다. 주문 녹음에 포함된 배경음은 독립 채널로 분리되지 않습니다. Alt + Shift + M(macOS Option + Shift + M)은 전체 소리 설정을 바꿉니다. 집중 모드에서는 계속 음소거하며 해당 선택은 마법 모드로 복귀할 때 적용합니다.
 
-## 작업 파일
+사이트별 끄기는 정규화한 호스트 이름을 정확히 비교합니다. 하위 도메인을 자동 포함하지 않으며 목록은 중복 없이 최대 200개입니다. 확장 팝업의 현재 사이트 설정은 최상위 탭을 기준으로 하고, 다른 출처의 삽입 프레임도 동일한 탭의 설정을 따릅니다. 설정 쓰기는 백그라운드에서 최신 값에 병합합니다. 웹 체험과 설치한 확장의 저장소는 별개입니다.
+
+1·2번 단계에서는 되돌린 약 10초 변신과 기존 그림·음성, 설치·배포 구성을 유지했습니다. 후속 승인된 3·4번에서는 자료 연결을 점검하고 `languageFallback`(기본 true)을 브라우저·Electron 양쪽에 추가했습니다. 끄면 다른 언어 녹음으로 자동 대체하지 않으며 브라우저의 명시적인 시스템 시연 선택은 별도입니다. 설정 변경은 재생 중·대기 중 음성을 취소합니다. 소품은 캐릭터별 전용 모델로 바꾸지 않았고 공통 디자인임을 안내합니다.
+
+첫 화면의 세 사용 경로와 INSTALL.md에 설치·끄기·삭제·검증 범위를 정리했습니다. build.mjs는 package-downloads.mjs를 호출해 현재 확장/소스 ZIP과 해시를 만듭니다. 확장 ZIP은 오프라인 다운로드를 위해 소스 ZIP과 Windows 간편 적용 EXE를 포함하지만 자기 자신은 포함하지 않습니다. 소스는 허용된 경로만 포함하고 사용자 저장소, 의존성, 개발 기록은 제외합니다. 캐릭터 파일 해상도·언어별 녹음·공통 소품의 점검은 CHARACTER_GUIDE.md에 기록합니다.
+
+## 핵심 파일
 
 | 파일 | 역할 |
 |---|---|
-| `src/models.js` | 요술봉·리듬탭 3D 모형, 구슬 물리 |
-| `src/engine.js` | 커서, 입자, 입력 이벤트, 변신 시퀀스 |
-| `src/gesture.js` | 길게 누르기·드래그·취소 판정 |
-| `src/audio.js` | 합성 효과음과 가져온 음성 재생 |
-| `src/background.js` | 탭/포커스 검증과 PNG 저장 |
-| `src/content.js` | 웹페이지에 확장 기능 연결 |
-| `src/popup.js`, `popup.html` | 확장 설정 |
-| `src/demo.js`, `demo.html` | 로컬 체험 및 소리 보관함 |
-| `extension/manifest.json` | 확장 권한과 파일 구성 |
-| `src/desktop-cursor.js`, `scripts/cursor-format.mjs` | 3D 커서 렌더링, Windows CUR/ANI 인코딩 |
-| `tests/` | Node.js 자동 테스트 37개 |
+| assets/{remi,hazuki,aiko,onpu,momoko}-{casual,transformed}.png | 사용자 원본 10장. 보관 파일의 바이트는 변경하지 않음 |
+| assets/{hazuki,aiko,onpu,momoko}-transformed-cutout.png | 원본 해상도·RGB와 ImageGen 가이드로 다듬은 알파를 결합한 표시용 PNG 4장 |
+| assets/character-sources.json, assets/cutout-sources.json | 원본 출처와 배경 추출본의 연결·처리 기록 |
+| src/characters.js | 원본·추출본 경로, 사전 디코딩, 비율 유지 표시 |
+| src/transformation.js | 두 원본 그림을 주문·빛 효과로 잇는 약 10초 타임라인. 변신 중 탭·단계 글씨 없음 |
+| src/engine.js, src/models.js | 3D 커서·리듬탭, 변신과 음성 종료 후 캡처 |
+| src/cursor-context.js | 클릭점 옆의 글자·링크·크기 조절 상태, 음소거 단축키 판별 |
+| src/wand-model.js, references/*-photo.png | 실제 제품 사진 기반 요술봉 모델·소품 참고 사진. 사진은 실행 에셋에 미포함 |
+| src/product-lighting.js, src/showcase.js | 부드럽고 따뜻한 조명, 무거운 투영 그림자 없는 사선 3D 진열 |
+| src/audio.js, src/bundled-voices.js | 원본 발췌 7개·사용자 녹음 우선·취소·완료, 네 소리 채널 제어 |
+| src/voice-profiles.js | 선택 가능한 시스템 시연 음성. 원본 성우·대사와 구분 |
+| assets/voices/attribution.json | 원본 음성 URL·발췌 구간·길이·SHA256 |
+| src/settings.js, src/demo.js, src/popup.js | 저장 설정과 집중 모드의 유효 설정, 체험·팝업·음성 가져오기 |
+| src/background.js, src/content.js | 캡처 검증, 설정 병합 저장, 최상위 사이트 설정과 프레임 연동 |
+| desktop/main.mjs, desktop/preload.cjs | Electron 투명 창·트레이·제한된 IPC |
+| desktop/scheduler.mjs, desktop/overlay.js | 등장 간격·취소·경계·원본 그림 이동·마법 |
+| desktop/controls.*, scripts/build-desktop.mjs | 설정 창·번들·원본 assets 복사 |
 
-## 다음에 할 작업과 한계
+## 유지해야 할 사항
 
-- 소품은 절차적 3D 모형이고 캐릭터는 제공된 **2D 원화**입니다. 영상과 동일한 3D 캐릭터·의상 변신은 미구현입니다.
-- 원본 성우 음성·정확한 주문·원작 음악은 포함되지 않았습니다. 현재 소리는 합성 벨이며, 별도 음성 파일을 연결할 수 있습니다.
-- macOS 실기기와 설치된 Chrome/Edge의 실제 웹페이지 캡처는 추가 검증이 필요합니다. 기존 환경에서는 자동 테스트 28개와 체험 페이지의 실제 PNG 다운로드를 확인했습니다.
-- 브라우저 내부 설정 페이지·확장 스토어 등 보호된 페이지와 OS 바탕화면에는 적용되지 않습니다.
-- 브라우저 설정과 사용자가 등록한 음성은 `chrome.storage.local` 또는 체험 사이트의 로컬 저장소에 있습니다. Git/ZIP에 포함되지 않으므로 다른 컴퓨터에서는 다시 설정/등록합니다.
+- 캐릭터의 외형을 유지하는 것이 배경 추출의 목표입니다. 새 캐릭터나 관절·가상의 중간 의상을 만들지 않고 원본 그림 전체를 표시합니다. 산책은 평상복 원본 그림 전체의 이동입니다.
+- 변신 중 리듬탭과 단계 안내 글씨는 표시하지 않습니다. 꽃잎 리듬탭은 스크롤용으로 유지합니다.
+- 사용자가 거절한 부위별 마스크 변신과 확대 연출을 다시 추가하지 않습니다. 변신 전·후 그림은 원래의 비율로 온전히 표시합니다.
+- 최신 사용자가 흰 배경 제거를 요청했으므로 이전의 배경 유지 지침은 표시용 4장에 적용하지 않습니다. 보관 원본 10장은 바꾸지 않고 *-transformed-cutout.png를 별도로 사용합니다. 도레미 변신 후와 평상복 5장은 변경하지 않습니다.
+- ImageGen은 알파 가이드를 얻는 데 사용합니다. 가이드를 원본 경계에 맞게 다듬어 원본 RGB에 적용하며 생성된 얼굴·색상은 표시하지 않습니다. 해상도와 RGB는 유지하지만 알파가 바뀌므로 전체 RGBA가 원본과 동일하다고 주장하지 않습니다. 얼굴·손·의상·요술봉·외곽선과 투명 경계를 시각적으로 확인한 뒤 검증 결과를 기록합니다. 추출본의 체크무늬 합성·변신 화면 시각 검증과 원본 RGB 채널 차이 0 검사를 완료했습니다.
+- 연속 중간 프레임이 없으므로 원작과 동일한 변신 안무라고 표현하지 않습니다.
+- 원본 음성은 한국어 도레미·유사랑·장메이·진보라, 일본어 도레미·유사랑·나모모의 7슬롯입니다. **나모모 한국어·장메이 일본어·진보라 일본어**는 별도 자료가 필요합니다.
+- 발췌에는 원본 배경음·효과음이 포함됩니다. 성우 음성만 분리하거나 합성한 것이 아닙니다. 실제 청취 비교를 완료했다고 주장하지 않습니다.
+- 사용자 음성 가져오기는 기본 발췌를 덮어쓰고 삭제하면 기본값이 복구됩니다. 시스템 시연은 기본 꺼짐입니다.
 
-코드·문서는 MIT 라이선스이며, 캐릭터 이미지 등의 별도 권리는 `ASSET_NOTICE.md`를 확인하세요.
+브라우저 사용자 녹음·Electron 사용자 설정·desktop/artifacts/smoke-profile은 배포하지 않습니다. 데스크톱 검증은 npx electron desktop/main.mjs --smoke-test; 결과 PNG와 원본 해시는 desktop/artifacts/에 저장됩니다.
+
+나모모 원본의 하단 표기는 보관 원본과 최종 표시용 추출본 모두에 유지합니다. 파생 파일의 출처 관계와 마스크 처리 방식은 assets/cutout-sources.json과 ASSET_NOTICE.md에서 확인할 수 있게 합니다.
+
+변신 되돌리기 시점에는 npm test의 자동 검사 93개를 통과했습니다. 이후 일상 사용 개선의 검사 결과는 별도로 확인하며 이 숫자를 최신 검사 수로 간주하지 않습니다. 브라우저·데스크톱 빌드, 실제 스피커 청취, Windows 스모크 테스트와 macOS 실행 여부도 별도로 확인하고 실행하지 않은 검사를 통과한 것으로 기록하지 않습니다.
+
+2026-09-28 일상 사용 개선 검증: 자동 검사 122개와 브라우저·데스크톱 번들 빌드가 통과했습니다. 로컬 브라우저에서 집중/마법 전환 시 설정 보존, 음소거 단축키와 새로고침 후 저장 유지, 현재 사이트 끄기와 기본 커서 복구, 캡처 없이 변신 종료를 확인했습니다. 별도 점검 화면에서 일반 div의 실제 글자와 빈 공간, 링크, CSS 가로 크기 조절 및 textarea 모서리를 구별하는 것도 확인했습니다. 400px 폭의 체험 화면에는 가로 넘침이 없습니다. 설치된 확장의 실제 실행 및 Electron 실행·macOS 실행을 이번 검증에 포함하지 않았습니다.
+
+실제 설치한 확장의 탭 PNG 다운로드, 물리 마우스 클릭 통과, 스피커 출력·원본 음색 비교, macOS는 별도 확인 대상입니다. [요청 대비 차이](IMPLEMENTATION_NOTES.md)와 [에셋 안내](ASSET_NOTICE.md)를 함께 읽어 주세요.

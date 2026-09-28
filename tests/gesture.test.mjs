@@ -118,6 +118,7 @@ test('settings normalization preserves valid choices and clamps numbers', () => 
     enabled: false, sound: false, captureOnTransform: false, trail: false,
     size: 300, volume: -2, holdDuration: 2000, character: 'hazuki',
   }), {
+    ...DEFAULTS,
     enabled: false, sound: false, captureOnTransform: false, trail: false,
     size: 240, volume: 0, holdDuration: 1800, character: 'hazuki', language:'ko', voiceFallback:false,
   });

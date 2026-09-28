@@ -126,8 +126,8 @@ function constrain(bead) {
   if (p.y > top) { p.y = top; bead.vy = -Math.abs(bead.vy) * .45; }
 }
 
-/** Both chambers respond to cursor acceleration without escaping their walls. */
-export function updateWand(group, { time = 0, dx = 0, dy = 0, dt = .016 } = {}) {
+/** Keep the magic beads moving at rest while retaining cursor inertia and walls. */
+export function updateWand(group, { time = 0, dx = 0, dy = 0, dt = .016, reducedMotion = false } = {}) {
   const beads = group?.userData?.beads;
   if (!beads) return;
   const seconds = Number.isFinite(time) ? time : 0;
@@ -137,14 +137,40 @@ export function updateWand(group, { time = 0, dx = 0, dy = 0, dt = .016 } = {}) 
   for (let index = 0; index < beads.length; index++) {
     const bead = beads[index], p = bead.mesh.position;
     const anchored = Number.isFinite(bead.anchorY);
-    bead.vx += (-horizontal * .12 + Math.sin(seconds * 1.6 + index) * .11 - (anchored ? p.x * 18 : 0)) * step;
-    bead.vy += (vertical * .12 + (anchored ? (bead.anchorY - p.y) * 22 : -.85) + Math.cos(seconds * 2 + index) * .08) * step;
-    bead.vz += (Math.sin(seconds * 1.4 + index) * .08 - (anchored ? p.z * 18 : 0)) * step;
-    const drag = Math.exp(-step * (anchored ? 6 : 2.7));
+    let ax = -horizontal * .12, ay = vertical * .12, az = 0;
+    if (reducedMotion) {
+      // Let pointer impulses settle naturally; do not run autonomous animation.
+      ax -= anchored ? p.x * 18 : 0;
+      ay += anchored ? (bead.anchorY - p.y) * 22 : -.85;
+      az -= anchored ? p.z * 18 : 0;
+    } else if (anchored) {
+      // The narrow grip keeps its rainbow order, but each faceted bead orbits
+      // across the available width and spins so the movement remains legible.
+      const phase = seconds * 4.4 + index * .65;
+      ax += (Math.cos(phase) * .029 - p.x) * 74;
+      ay += (bead.anchorY + Math.sin(seconds * 4.8 + index) * .01 - p.y) * 86;
+      az += (Math.sin(phase) * .029 - p.z) * 74;
+    } else {
+      // Moving spring targets continually replenish energy instead of letting
+      // the upper beads sink to the floor when the mouse stops moving.
+      const phase = seconds * 1.85 + index * Math.PI * 2 / 7 + .3;
+      const radius = .333 + Math.sin(seconds * 2.4 + index * 1.7) * .02;
+      const middle = (bead.chamber.minY + bead.chamber.maxY) / 2;
+      ax += (Math.cos(phase) * radius - p.x) * 52;
+      ay += (middle + Math.sin(seconds * 4.3 + index * 2.2) * .118 - p.y) * 72;
+      az += (Math.sin(phase) * radius - p.z) * 52;
+    }
+    bead.vx += ax * step; bead.vy += ay * step; bead.vz += az * step;
+    const drag = Math.exp(-step * (reducedMotion ? (anchored ? 6 : 2.7) : (anchored ? 7 : 4.3)));
     bead.vx = T.MathUtils.clamp(bead.vx * drag, -3, 3);
     bead.vy = T.MathUtils.clamp(bead.vy * drag, -3, 3);
     bead.vz = T.MathUtils.clamp(bead.vz * drag, -3, 3);
     p.x += bead.vx * step; p.y += bead.vy * step; p.z += bead.vz * step;
+    if (!reducedMotion) {
+      bead.mesh.rotation.x += step * (.95 + index % 3 * .18);
+      bead.mesh.rotation.y += step * (1.75 + index % 4 * .22);
+      bead.mesh.rotation.z += step * .6;
+    }
     constrain(bead);
   }
   for (let iteration = 0; iteration < 3; iteration++) {

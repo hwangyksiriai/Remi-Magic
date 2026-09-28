@@ -1,0 +1,29 @@
+{
+  "version": "1.3.1",
+  "createdAt": "2026-09-28T09:58:46.664Z",
+  "files": [
+    {
+      "name": "Remi-Magic-Setup.exe",
+      "bytes": 2058240,
+      "sha256": "7fe821e3feb4fd6f1d1f9273affeb9df086e120e09a380a714674cd3af370f27"
+    },
+    {
+      "name": "remi-magic-windows-cursors.zip",
+      "bytes": 671305,
+      "sha256": "b1b26fcb26e41139c6cd3d015afadab74f615f867f8834f024692dff0ea82e64",
+      "entryCount": 9
+    },
+    {
+      "name": "remi-magic-extension.zip",
+      "bytes": 10295993,
+      "sha256": "8b0701c290b99b01db5ddef65d09e856e5dbfb316b05fe8167b3d94d74dc052d",
+      "entryCount": 40
+    },
+    {
+      "name": "remi-magic-source.zip",
+      "bytes": 4836965,
+      "sha256": "717e8cc9e75150dbae69a443282cb0d87467363809ae92cfb0d24ee2f4c42391",
+      "entryCount": 105
+    }
+  ]
+}
